@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+:root {
+  --color-bg: #e8dbc9;
+  --color-bg-elevated: #f1e6d8;
+  --color-panel: rgba(249, 242, 232, 0.82);
+  --color-panel-soft: rgba(255, 251, 245, 0.94);
+  --color-ink: #2f261f;
+  --color-ink-soft: #584c42;
+  --color-ink-muted: #7d6f63;
+  --color-ink-strong: #fcf5eb;
+  --color-accent: #5a4332;
+  --color-accent-strong: #473324;
+  --color-glow: rgba(162, 136, 110, 0.3);
+  --color-danger: #b65a53;
+  --color-line-strong: rgba(71, 56, 43, 0.24);
+  --color-line-soft: rgba(71, 56, 43, 0.14);
+  --color-mark-x: #c6534d;
+  --color-mark-o: #4577cc;
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-ink);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 252, 247, 0.9), transparent 30%),
+    linear-gradient(180deg, #f4ebde 0%, #e8dbc9 46%, #dcc9b0 100%);
+  color: var(--color-ink);
+  font-family: var(--font-geist-sans), sans-serif;
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+}
+
+.app-shell::before {
+  content: "";
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(circle at 20% 0%, rgba(255, 255, 255, 0.25), transparent 24%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.08), transparent 42%),
+    linear-gradient(0deg, rgba(89, 67, 50, 0.05), transparent 28%);
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.2), transparent 90%);
+}
+
+::selection {
+  background: rgba(78, 61, 49, 0.2);
+  color: var(--color-ink);
+}
+
+@keyframes board-drift {
+  0% {
+    transform: translate3d(-50%, -50%, 0) rotate(-5deg) scale(1.04);
+  }
+  100% {
+    transform: translate3d(-49%, -51%, 0) rotate(-2deg) scale(1.08);
+  }
+}
+
+@keyframes board-drift-alt {
+  0% {
+    transform: translate3d(-50%, -50%, 0) rotate(4deg) scale(1.1);
+  }
+  100% {
+    transform: translate3d(-51%, -49%, 0) rotate(1deg) scale(1.14);
+  }
+}
