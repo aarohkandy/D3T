@@ -163,7 +163,7 @@ export function FakeMatchBackground() {
         lastMoveKey: `${move.t1}-${move.t2}-${move.t3}`,
       };
       redraw();
-    }, 520);
+    }, 430);
 
     return () => {
       stopped = true;

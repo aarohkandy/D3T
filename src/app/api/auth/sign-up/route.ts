@@ -13,7 +13,6 @@ const signUpSchema = z.object({
   email: z.string().trim().email(),
   password: z.string().min(8).max(120),
   username: z.string().trim().min(2).max(18),
-  displayName: z.string().trim().min(2).max(32),
 });
 
 function sanitizeUsername(raw: string) {
@@ -22,6 +21,16 @@ function sanitizeUsername(raw: string) {
     throw new AppError("Username must contain at least two letters or numbers.");
   }
   return normalized;
+}
+
+function isDatabaseSetupError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /relation .* does not exist|column .* does not exist|database.*not configured|password authentication failed|connection/i.test(
+    error.message,
+  );
 }
 
 export async function POST(request: Request) {
@@ -38,9 +47,18 @@ export async function POST(request: Request) {
     const payload = signUpSchema.parse(await request.json());
     const username = sanitizeUsername(payload.username);
 
-    const existing = await db.query.profilesTable.findFirst({
-      where: eq(profilesTable.username, username),
-    });
+    let existing;
+    try {
+      existing = await db.query.profilesTable.findFirst({
+        where: eq(profilesTable.username, username),
+      });
+    } catch (error) {
+      if (isDatabaseSetupError(error)) {
+        throw new AppError("The database is not ready yet. Check DATABASE_URL and run the migrations.", 500);
+      }
+
+      throw error;
+    }
 
     if (existing) {
       throw new AppError("That username is already taken.", 409);
@@ -53,7 +71,7 @@ export async function POST(request: Request) {
       email_confirm: true,
       user_metadata: {
         username,
-        display_name: payload.displayName,
+        display_name: username,
       },
     });
 
@@ -65,14 +83,18 @@ export async function POST(request: Request) {
       await db.insert(profilesTable).values({
         id: created.data.user.id,
         username,
-        displayName: payload.displayName,
+        displayName: username,
         email: payload.email,
         avatarUrl: null,
         hasSeenForcedTargetHint: 0,
       });
     } catch (error) {
       await admin.auth.admin.deleteUser(created.data.user.id);
-      throw error;
+      if (isDatabaseSetupError(error)) {
+        throw new AppError("The database is not ready yet. Check DATABASE_URL and run the migrations.", 500);
+      }
+
+      throw new AppError("Could not save your profile. Try again in a minute.", 500);
     }
 
     const response = NextResponse.json({ ok: true });

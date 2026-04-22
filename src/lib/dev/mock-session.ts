@@ -10,7 +10,7 @@ export const MOCK_VIEWERS: AppViewer[] = [
     username: "boardbuilder",
     email: "boardbuilder@localhost.test",
     avatarUrl: null,
-    displayName: "Board Builder",
+    displayName: "boardbuilder",
     isMock: true,
     hasSeenForcedTargetHint: false,
   },
@@ -19,7 +19,7 @@ export const MOCK_VIEWERS: AppViewer[] = [
     username: "forktrap",
     email: "forktrap@localhost.test",
     avatarUrl: null,
-    displayName: "Fork Trap",
+    displayName: "forktrap",
     isMock: true,
     hasSeenForcedTargetHint: false,
   },
@@ -28,7 +28,7 @@ export const MOCK_VIEWERS: AppViewer[] = [
     username: "middlegame",
     email: "middlegame@localhost.test",
     avatarUrl: null,
-    displayName: "Middle Game",
+    displayName: "middlegame",
     isMock: true,
     hasSeenForcedTargetHint: false,
   },
@@ -37,7 +37,7 @@ export const MOCK_VIEWERS: AppViewer[] = [
     username: "endgrid",
     email: "endgrid@localhost.test",
     avatarUrl: null,
-    displayName: "End Grid",
+    displayName: "endgrid",
     isMock: true,
     hasSeenForcedTargetHint: false,
   },
@@ -81,11 +81,6 @@ export function normalizeUsername(raw: string) {
     .slice(0, 18);
 }
 
-export function normalizeDisplayName(raw: string, fallbackUsername: string) {
-  const cleaned = raw.trim().replace(/\s+/g, " ").slice(0, 32);
-  return cleaned || fallbackUsername;
-}
-
 export function normalizeEmail(raw: string, username: string) {
   const cleaned = raw.trim().toLowerCase();
   return cleaned || `${username}@localhost.test`;
@@ -117,7 +112,6 @@ export function getLocalViewerByUsername(username: string) {
 
 export function createLocalViewer(input: {
   username: string;
-  displayName?: string;
   email?: string;
 }) {
   const username = normalizeUsername(input.username);
@@ -125,7 +119,6 @@ export function createLocalViewer(input: {
     throw new Error("Username must be at least 2 characters.");
   }
 
-  const displayName = normalizeDisplayName(input.displayName ?? "", username);
   const email = normalizeEmail(input.email ?? "", username);
 
   return registerLocalViewer({
@@ -133,7 +126,7 @@ export function createLocalViewer(input: {
     username,
     email,
     avatarUrl: null,
-    displayName,
+    displayName: username,
     isMock: true,
     hasSeenForcedTargetHint: false,
   });
@@ -162,16 +155,18 @@ export function parseLocalViewer(serialized?: string | null) {
     const decoded = Buffer.from(serialized, "base64url").toString("utf8");
     const payload = JSON.parse(decoded) as Partial<AppViewer>;
 
-    if (!payload.id || !payload.username || !payload.email || !payload.displayName) {
+    if (!payload.id || !payload.username || !payload.email) {
       return null;
     }
 
+    const username = normalizeUsername(payload.username);
+
     const viewer: AppViewer = {
       id: payload.id,
-      username: normalizeUsername(payload.username),
+      username,
       email: payload.email,
       avatarUrl: payload.avatarUrl ?? null,
-      displayName: payload.displayName,
+      displayName: username,
       isMock: true,
       hasSeenForcedTargetHint: Boolean(payload.hasSeenForcedTargetHint),
     };

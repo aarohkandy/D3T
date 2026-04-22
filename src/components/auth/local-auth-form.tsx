@@ -20,7 +20,6 @@ export function LocalAuthForm({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
 
   const isSignUp = mode === "sign-up";
@@ -67,17 +66,18 @@ export function LocalAuthForm({
             onSubmit={(event) => {
               event.preventDefault();
               startTransition(async () => {
-                await submitAuth(isSignUp
-                  ? {
-                    mode,
-                    username,
-                    displayName,
-                    email,
-                  }
-                  : {
-                    mode,
-                    username,
-                  });
+                await submitAuth(
+                  isSignUp
+                    ? {
+                        mode,
+                        username,
+                        email,
+                      }
+                    : {
+                        mode,
+                        username,
+                      },
+                );
               });
             }}
           >
@@ -93,27 +93,15 @@ export function LocalAuthForm({
               </label>
 
               {isSignUp ? (
-                <>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Display name</span>
-                    <input
-                      value={displayName}
-                      onChange={(event) => setDisplayName(event.target.value)}
-                      placeholder="D3T Player"
-                      className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.86)] px-4 text-[color:var(--color-ink)] outline-none"
-                    />
-                  </label>
-
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
-                    <input
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="you@example.com"
-                      className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.86)] px-4 text-[color:var(--color-ink)] outline-none"
-                    />
-                  </label>
-                </>
+                <label className="space-y-2 sm:col-span-2">
+                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
+                  <input
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.86)] px-4 text-[color:var(--color-ink)] outline-none"
+                  />
+                </label>
               ) : null}
             </div>
 
@@ -160,7 +148,7 @@ export function LocalAuthForm({
                 className="flex w-full items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.72)] px-4 py-3 text-left transition hover:border-[color:var(--color-line-strong)]"
               >
                 <span>
-                  <span className="block text-sm font-semibold text-[color:var(--color-ink)]">{viewer.displayName}</span>
+                  <span className="block text-sm font-semibold text-[color:var(--color-ink)]">{viewer.username}</span>
                   <span className="block text-xs text-[color:var(--color-ink-muted)]">@{viewer.username}</span>
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-ink-muted)]">

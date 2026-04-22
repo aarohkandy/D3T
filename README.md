@@ -7,7 +7,7 @@ D3T is a Next.js + TypeScript web app for three-layer Grandfather Tic-Tac-Toe. T
 - Supabase Realtime
 - Vercel hosting
 
-The first public beta is challenge-first. Quick Play stays disabled in the production path until a persistent queue and its QA pass are ready.
+The first public launch is challenge-first. Quick Play stays disabled in the production path until a persistent queue and its QA pass are ready.
 
 ## Local development
 
@@ -38,7 +38,7 @@ If you **do** set:
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
 
-then the app uses the real beta architecture locally too.
+then the app uses the real hosted architecture locally too.
 
 ## Database
 
@@ -51,17 +51,17 @@ npm run db:generate
 npm run db:push
 ```
 
-## Auth and beta flow
+## Auth and game flow
 
 - Signed-out users create an account with email + password.
-- Sign-up collects a unique username and display name.
+- Sign-up collects one unique username. That same username is shown everywhere.
 - Signed-in users send and accept friend challenges by username.
 - Live games persist clocks, moves, reconnect timestamps, and disconnect forfeits in Postgres.
 - Realtime UI refresh comes from Supabase Realtime channel subscriptions.
 
 ## Vercel deployment
 
-Use Vercel Preview deployments first, then promote to Production only after the full beta smoke test passes:
+Use Vercel Preview deployments first, then promote to Production only after the full smoke test passes:
 
 - sign up
 - sign in

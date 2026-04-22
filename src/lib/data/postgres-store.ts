@@ -644,24 +644,24 @@ export async function ensureViewerUser(viewer: AppViewer) {
     if (
       existing.email !== viewer.email ||
       existing.avatarUrl !== viewer.avatarUrl ||
-      existing.displayName !== viewer.displayName
+      existing.displayName !== existing.username
     ) {
       await db.update(profilesTable).set({
         email: viewer.email,
         avatarUrl: viewer.avatarUrl,
-        displayName: viewer.displayName,
+        displayName: existing.username,
         updatedAt: now(),
       }).where(eq(profilesTable.id, viewer.id));
     }
 
-    return rowToProfile(existing);
+    return rowToProfile({ ...existing, displayName: existing.username });
   }
 
   const username = sanitizeUsername(viewer.username);
   const inserted = await db.insert(profilesTable).values({
     id: viewer.id,
     username,
-    displayName: viewer.displayName,
+    displayName: username,
     email: viewer.email,
     avatarUrl: viewer.avatarUrl,
     hasSeenForcedTargetHint: viewer.hasSeenForcedTargetHint ? 1 : 0,

@@ -17,7 +17,7 @@ export function DemoEntryList() {
       {MOCK_VIEWERS.map((viewer) => (
         <Card key={viewer.id} className="space-y-4">
           <div>
-            <p className="text-lg font-semibold text-[color:var(--color-ink)]">{viewer.displayName}</p>
+            <p className="text-lg font-semibold text-[color:var(--color-ink)]">{viewer.username}</p>
             <p className="text-sm text-[color:var(--color-ink-muted)]">@{viewer.username}</p>
           </div>
           <Button

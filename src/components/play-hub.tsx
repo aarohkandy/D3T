@@ -234,7 +234,7 @@ export function PlayHub({
                   Live clocks
                 </span>
                 <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
-                  Challenges-first beta
+                  Challenges first
                 </span>
               </div>
               <p className="max-w-[460px] text-sm leading-7 text-[color:var(--color-ink-muted)]">
