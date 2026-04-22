@@ -38,7 +38,6 @@ async function ensureSupabaseProfile(params: {
   id: string;
   email: string;
   username: string;
-  displayName: string;
   avatarUrl: string | null;
 }) {
   const db = getDb();
@@ -51,6 +50,19 @@ async function ensureSupabaseProfile(params: {
   });
 
   if (existing) {
+    if (existing.displayName !== existing.username) {
+      const updated = await db
+        .update(profilesTable)
+        .set({
+          displayName: existing.username,
+          updatedAt: new Date(),
+        })
+        .where(eq(profilesTable.id, existing.id))
+        .returning();
+
+      return updated[0] ?? { ...existing, displayName: existing.username };
+    }
+
     return existing;
   }
 
@@ -72,7 +84,7 @@ async function ensureSupabaseProfile(params: {
     .values({
       id: params.id,
       username,
-      displayName: params.displayName,
+      displayName: username,
       email: params.email,
       avatarUrl: params.avatarUrl,
       hasSeenForcedTargetHint: 0,
@@ -100,19 +112,17 @@ export async function getViewer(): Promise<AppViewer | null> {
         (typeof user.user_metadata.username === "string" && user.user_metadata.username) ||
         user.email?.split("@")[0] ||
         user.id.slice(-8),
-      displayName:
-        (typeof user.user_metadata.display_name === "string" && user.user_metadata.display_name) ||
-        (typeof user.user_metadata.full_name === "string" && user.user_metadata.full_name) ||
-        "D3T Player",
       avatarUrl: typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null,
     });
 
+    const username = profile?.username ?? sanitizeUsername(user.email?.split("@")[0] ?? user.id.slice(-8));
+
     return {
       id: user.id,
-      username: profile?.username ?? sanitizeUsername(user.email?.split("@")[0] ?? user.id.slice(-8)),
+      username,
       email: user.email ?? `${user.id}@d3t.app`,
       avatarUrl: profile?.avatarUrl ?? (typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null),
-      displayName: profile?.displayName ?? "D3T Player",
+      displayName: username,
       isMock: false,
       hasSeenForcedTargetHint: Boolean(profile?.hasSeenForcedTargetHint),
     };

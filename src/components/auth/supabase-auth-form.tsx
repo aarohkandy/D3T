@@ -14,7 +14,6 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
-  const [displayName, setDisplayName] = useState("");
   const isSignUp = mode === "sign-up";
 
   async function submit() {
@@ -29,7 +28,6 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               email,
               password,
               username,
-              displayName,
             }
           : {
               email,
@@ -57,11 +55,11 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               {isSignUp ? "Create account" : "Welcome back"}
             </p>
             <h1 className="text-5xl font-semibold tracking-[-0.08em] text-[color:var(--color-ink)]">
-              {isSignUp ? "Start your beta account." : "Log in to D3T."}
+              {isSignUp ? "Start your account." : "Log in to D3T."}
             </h1>
             <p className="max-w-[470px] text-base leading-7 text-[color:var(--color-ink-soft)]">
               {isSignUp
-                ? "Use email and password for the first public beta, then challenge people by username."
+                ? "Use email and password, then challenge people by username."
                 : "Sign in with the same email and password you used when you created your D3T account."}
             </p>
           </div>
@@ -101,27 +99,15 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               </label>
 
               {isSignUp ? (
-                <>
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
-                    <input
-                      value={username}
-                      onChange={(event) => setUsername(event.target.value)}
-                      placeholder="grandmasterttt"
-                      className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
-                    />
-                  </label>
-
-                  <label className="space-y-2">
-                    <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Display name</span>
-                    <input
-                      value={displayName}
-                      onChange={(event) => setDisplayName(event.target.value)}
-                      placeholder="D3T Player"
-                      className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
-                    />
-                  </label>
-                </>
+                <label className="space-y-2 sm:col-span-2">
+                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
+                  <input
+                    value={username}
+                    onChange={(event) => setUsername(event.target.value)}
+                    placeholder="grandmasterttt"
+                    className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
+                  />
+                </label>
               ) : null}
             </div>
 
@@ -146,7 +132,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
         <div className="space-y-4 rounded-[24px] border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.68)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
           <div className="space-y-2">
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[color:var(--color-ink-muted)]">
-              Beta Flow
+              Game Flow
             </p>
             <p className="text-lg font-semibold text-[color:var(--color-ink)]">Challenges first</p>
           </div>

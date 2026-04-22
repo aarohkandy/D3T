@@ -22,5 +22,8 @@ export function handleRouteError(error: unknown) {
   }
 
   console.error(error);
-  return NextResponse.json({ error: "Unexpected server error." }, { status: 500 });
+  return NextResponse.json(
+    { error: "Server setup is not finished yet. Check Supabase keys, DATABASE_URL, and database migrations." },
+    { status: 500 },
+  );
 }

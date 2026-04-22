@@ -19,7 +19,6 @@ const localAuthSchema = z.discriminatedUnion("mode", [
   z.object({
     mode: z.literal("sign-up"),
     username: z.string().trim().min(2).max(18),
-    displayName: z.string().trim().max(32).optional().default(""),
     email: z.string().trim().max(120).optional().default(""),
   }),
 ]);
@@ -42,7 +41,6 @@ export async function POST(request: Request) {
 
         return createLocalViewer({
           username: payload.username,
-          displayName: payload.displayName,
           email: payload.email,
         });
       })();
