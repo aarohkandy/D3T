@@ -10,6 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
+    "portal:build": "vite build --config portal/vite.config.ts --mode generic",
+    "portal:build:crazygames": "vite build --config portal/vite.config.ts --mode crazygames",
+    "portal:build:poki": "vite build --config portal/vite.config.ts --mode poki",
+    "portal:build:gamedistribution": "vite build --config portal/vite.config.ts --mode gamedistribution",
+    "portal:build:all": "npm run portal:build && npm run portal:build:crazygames && npm run portal:build:poki && npm run portal:build:gamedistribution",
+    "portal:preview": "vite preview --config portal/vite.config.ts --host 0.0.0.0",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push"
   },
@@ -38,6 +44,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.1",
     "@vitest/coverage-v8": "^4.1.4",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9",
@@ -45,6 +52,7 @@
     "jsdom": "^29.0.2",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vite": "^8.0.9",
     "vitest": "^4.1.4"
   }
 }

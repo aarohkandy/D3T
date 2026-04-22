@@ -1,0 +1,29 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">D3T launch image</title>
+  <desc id="desc">A launch card for D3T with logo, tagline, and product stack.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F7F0E5"/>
+      <stop offset="1" stop-color="#D7C1A0"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(950 120) rotate(135) scale(420 320)">
+      <stop stop-color="#FFFFFF" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" rx="48" fill="url(#bg)"/>
+  <circle cx="1000" cy="110" r="250" fill="url(#glow)"/>
+  <g transform="translate(86 92)">
+    <rect x="0" y="0" width="212" height="212" rx="48" fill="#FCF8F0" stroke="#5A4332" stroke-width="12"/>
+    <path d="M106 28V184" stroke="#5A4332" stroke-width="14" stroke-linecap="round"/>
+    <path d="M28 106H184" stroke="#5A4332" stroke-width="14" stroke-linecap="round"/>
+    <circle cx="74" cy="74" r="24" stroke="#C6534D" stroke-width="14"/>
+    <path d="M156 156L184 184" stroke="#4577CC" stroke-width="14" stroke-linecap="round"/>
+    <path d="M184 156L156 184" stroke="#4577CC" stroke-width="14" stroke-linecap="round"/>
+  </g>
+  <text x="332" y="190" fill="#2F261F" font-family="Georgia, 'Times New Roman', serif" font-size="120" font-weight="700" letter-spacing="10">D3T</text>
+  <text x="332" y="250" fill="#584C42" font-family="Arial, sans-serif" font-size="30" font-weight="700" letter-spacing="5">THREE-LAYER GRANDFATHER TIC-TAC-TOE</text>
+  <text x="88" y="392" fill="#2F261F" font-family="Arial, sans-serif" font-size="44" font-weight="700" letter-spacing="1">Challenge-first multiplayer play for the web.</text>
+  <text x="88" y="452" fill="#584C42" font-family="Arial, sans-serif" font-size="28" font-weight="600">Next.js . Supabase . Postgres . Vercel</text>
+  <text x="88" y="520" fill="#7D6F63" font-family="Arial, sans-serif" font-size="24" font-weight="600">Launch press asset</text>
+</svg>
