@@ -4,8 +4,11 @@ const rawRealtimeMode = process.env.D3T_REALTIME_MODE ?? "supabase";
 const rawDevDemoMode = process.env.D3T_ENABLE_DEV_DEMO ?? "true";
 
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
-const hasSupabaseAnonKey = Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const hasSupabasePublishableKey = Boolean(
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+);
 const hasSupabaseServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
+const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
 export const appConfig = {
   appName: "D3T",
@@ -15,10 +18,11 @@ export const appConfig = {
   realtimeMode: rawRealtimeMode === "mock" ? "mock" : "supabase",
   enableDevDemo: rawDevDemoMode !== "false",
   hasSupabaseUrl,
-  hasSupabaseAnonKey,
+  hasSupabasePublishableKey,
   hasSupabaseServiceRole,
-  hasSupabaseKeys: hasSupabaseUrl && hasSupabaseAnonKey,
-  hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
+  hasSupabaseKeys: hasSupabaseUrl && hasSupabasePublishableKey,
+  hasDatabaseUrl,
+  hasProductionBackend: hasSupabaseUrl && hasSupabasePublishableKey && hasSupabaseServiceRole && hasDatabaseUrl,
   disconnectGraceMs: 2 * 60 * 1000,
   presenceHeartbeatMs: 15_000,
   challengeExpiryMs: 2 * 60 * 1000,
@@ -29,7 +33,7 @@ export function isProduction() {
 }
 
 export function isSupabaseAuthEnabled() {
-  return appConfig.authMode === "supabase" && appConfig.hasSupabaseKeys;
+  return appConfig.authMode === "supabase" && appConfig.hasProductionBackend;
 }
 
 export function isLocalAuthEnabled() {
