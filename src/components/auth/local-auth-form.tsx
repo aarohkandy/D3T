@@ -57,7 +57,7 @@ export function LocalAuthForm({
             </h1>
             <p className="max-w-[420px] text-base leading-7 text-[color:var(--color-ink-soft)]">
               {isSignUp
-                ? "Create an account and jump straight into quick play or friend challenges."
+                ? "Create an account and jump straight into friend challenges."
                 : "Use your username to jump back into the game flow instantly."}
             </p>
           </div>

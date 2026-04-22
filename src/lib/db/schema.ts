@@ -50,6 +50,7 @@ export const gamesTable = pgTable(
     playerORemainingMs: integer("player_o_remaining_ms").notNull(),
     turnStartedAt: timestamp("turn_started_at", { withTimezone: true }),
     currentStateJson: jsonb("current_state_json").$type<D3TGameState>().notNull(),
+    statsFinalized: integer("stats_finalized").notNull().default(0),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
     finishedAt: timestamp("finished_at", { withTimezone: true }),

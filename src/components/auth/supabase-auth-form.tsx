@@ -95,7 +95,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                   autoComplete={isSignUp ? "new-password" : "current-password"}
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
-                  placeholder="••••••••"
+                  placeholder="8+ characters"
                   className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
                 />
               </label>

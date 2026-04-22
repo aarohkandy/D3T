@@ -4,13 +4,12 @@ import { eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { appConfig, isLocalAuthEnabled, isSupabaseAuthEnabled } from "@/lib/config";
+import { isDevDemoEnabled, isSupabaseAuthEnabled } from "@/lib/config";
 import { getDb } from "@/lib/db/client";
 import { profilesTable } from "@/lib/db/schema";
 import {
   getMockViewer,
   LOCAL_VIEWER_COOKIE,
-  MOCK_VIEWER,
   MOCK_VIEWER_COOKIE,
   parseLocalViewer,
 } from "@/lib/dev/mock-session";
@@ -157,11 +156,11 @@ export async function requireViewer() {
     redirect("/sign-in");
   }
 
-  if (isLocalAuthEnabled() && appConfig.enableDevDemo) {
+  if (isDevDemoEnabled()) {
     redirect("/dev/demo");
   }
 
-  return MOCK_VIEWER;
+  redirect("/sign-in");
 }
 
 export async function requireApiViewer() {

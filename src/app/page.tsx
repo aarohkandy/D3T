@@ -1,5 +1,4 @@
 import { getViewer } from "@/lib/auth/session";
-import { isChallengeOnlyBeta } from "@/lib/config";
 import { getDashboardData } from "@/lib/data/store";
 
 import { GameRoomClient } from "@/components/game/game-room-client";
@@ -13,5 +12,5 @@ export default async function Home() {
     return <GameRoomClient initialGame={hub.activeGame} viewer={viewer} />;
   }
 
-  return <PlayHub viewer={viewer} initialHub={hub} challengeOnlyBeta={isChallengeOnlyBeta()} />;
+  return <PlayHub viewer={viewer} initialHub={hub} />;
 }
