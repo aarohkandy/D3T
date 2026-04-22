@@ -1,0 +1,39 @@
+launch_id: d3t-v1
+project_name: D3T
+title: D3T
+title_short: D3T
+tagline: Three-layer Tic-Tac-Toe with forced replies
+short_description: Play D3T, a tense three-layer Grandfather Tic-Tac-Toe strategy game.
+long_description: D3T turns Tic-Tac-Toe into a three-layer strategy duel. Every move sends the next player into a forced board, creating traps, tempo swings, and sudden reversals across 729 tiny cells. The public web app supports account-based friend challenges, while portal builds launch instantly into guest pass-and-play.
+controls: Click or tap any highlighted legal cell. After each move, the next player must play in the board routed by the previous move.
+genre_primary: Strategy
+genre_secondary: Board Game
+tags:
+  - tic-tac-toe
+  - strategy
+  - board-game
+  - multiplayer
+  - puzzle
+  - html5
+  - browser-game
+  - logic
+age_rating: PEGI 12 compatible
+supported_orientations:
+  - landscape
+  - portrait
+engine: Next.js main app, Vite portal build, shared TypeScript D3T engine
+platforms:
+  - web
+languages:
+  - en
+website: https://d3-t.vercel.app
+privacy_policy_url: https://d3-t.vercel.app/privacy
+terms_url: https://d3-t.vercel.app/terms
+press_kit_url: https://d3-t.vercel.app/presskit
+contact_email: TODO@example.com
+trailer_url: TODO
+status: implementation-ready
+strategy:
+  public_site: account friend challenges on Vercel
+  portal_build: anonymous guest pass-and-play in one click
+  exclusivity: broad nonexclusive web launch; Poki prepared only

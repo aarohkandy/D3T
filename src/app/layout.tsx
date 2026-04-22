@@ -8,12 +8,40 @@ import { ClientProviders } from "@/components/providers/client-providers";
 import { SiteHeader } from "@/components/site-header";
 import "./globals.css";
 
+const siteUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+const metadataBase = new URL(siteUrl);
+
 export const metadata: Metadata = {
   title: {
     default: "D3T",
     template: "%s | D3T",
   },
-  description: "A Vercel-ready web platform for three-layer Grandfather Tic-Tac-Toe.",
+  metadataBase,
+  description: "D3T is a challenge-first web platform for three-layer Grandfather Tic-Tac-Toe.",
+  alternates: {
+    canonical: "/",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "D3T",
+    url: "/",
+    title: "D3T",
+    description: "Challenge-first three-layer Grandfather Tic-Tac-Toe on the web.",
+    images: [
+      {
+        url: "/press/d3t-og.svg",
+        width: 1200,
+        height: 630,
+        alt: "D3T launch card",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "D3T",
+    description: "Challenge-first three-layer Grandfather Tic-Tac-Toe on the web.",
+    images: ["/press/d3t-og.svg"],
+  },
 };
 
 export default async function RootLayout({

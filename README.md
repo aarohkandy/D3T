@@ -7,7 +7,7 @@ D3T is a Next.js + TypeScript web app for three-layer Grandfather Tic-Tac-Toe. T
 - Supabase Realtime
 - Vercel hosting
 
-The first public launch is challenge-first. Quick Play stays disabled in the production path until a persistent queue and its QA pass are ready.
+The first public launch is challenge-first. Instant matchmaking stays disabled in the production path until a persistent queue and its QA pass are ready.
 
 ## Local development
 
@@ -82,6 +82,20 @@ Required production env vars:
 
 Legacy Supabase projects may call the public key `NEXT_PUBLIC_SUPABASE_ANON_KEY`; D3T supports either name, but new projects should use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
+## Portal distribution
+
+D3T also ships a self-contained HTML5 portal build for upload sites that need a ZIP without auth or backend dependencies:
+
+```bash
+npm run portal:build
+npm run portal:build:crazygames
+npm run portal:build:poki
+npm run portal:build:gamedistribution
+npm run portal:build:all
+```
+
+Portal builds output to `dist/portal/<target>/`. The launch control folder lives in `launch/d3t-v1/`.
+
 ## Verification
 
 Current local verification commands:
@@ -91,4 +105,5 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run portal:build:all
 ```

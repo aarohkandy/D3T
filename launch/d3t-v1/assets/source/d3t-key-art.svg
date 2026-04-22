@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="720" viewBox="0 0 1280 720" role="img" aria-labelledby="title desc">
+  <title id="title">D3T key art</title>
+  <desc id="desc">A beige D3T launch card with a nested board, red X marks, and blue O marks.</desc>
+  <rect width="1280" height="720" fill="#efe4d1"/>
+  <circle cx="1040" cy="120" r="220" fill="#fff8eb" opacity=".7"/>
+  <g transform="translate(86 80)">
+    <rect width="560" height="560" rx="34" fill="#fff7e8" stroke="#503c29" stroke-width="8"/>
+    <g stroke="#503c29" stroke-linecap="round">
+      <path d="M187 18v524M373 18v524M18 187h524M18 373h524" stroke-width="8"/>
+      <path d="M62 18v524M124 18v524M249 18v524M311 18v524M436 18v524M498 18v524M18 62h524M18 124h524M18 249h524M18 311h524M18 436h524M18 498h524" stroke-width="2" opacity=".45"/>
+    </g>
+    <text x="92" y="116" fill="#cf5148" font-family="Arial, sans-serif" font-size="76" font-weight="900">X</text>
+    <text x="421" y="302" fill="#376fc7" font-family="Arial, sans-serif" font-size="76" font-weight="900">O</text>
+    <text x="274" y="486" fill="#cf5148" font-family="Arial, sans-serif" font-size="76" font-weight="900">X</text>
+  </g>
+  <g transform="translate(720 190)">
+    <text x="0" y="0" fill="#2e2419" font-family="Arial, sans-serif" font-size="132" font-weight="900" letter-spacing="-10">D3T</text>
+    <text x="4" y="76" fill="#5d4934" font-family="Arial, sans-serif" font-size="34" font-weight="700">Three-layer Tic-Tac-Toe</text>
+    <text x="4" y="124" fill="#5d4934" font-family="Arial, sans-serif" font-size="27">Every move forces the next board.</text>
+  </g>
+</svg>
