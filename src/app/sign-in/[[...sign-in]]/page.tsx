@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
 import { getViewer } from "@/lib/auth/session";
-import { isSupabaseAuthEnabled } from "@/lib/config";
+import { isLocalAuthEnabled, isSupabaseAuthEnabled } from "@/lib/config";
 import { MOCK_VIEWERS } from "@/lib/dev/mock-session";
 
+import { AuthUnavailableCard } from "@/components/auth/auth-unavailable-card";
 import { LocalAuthForm } from "@/components/auth/local-auth-form";
 import { SupabaseAuthForm } from "@/components/auth/supabase-auth-form";
 import { FakeMatchBackground } from "@/components/landing/fake-match-background";
@@ -20,7 +21,9 @@ export default async function SignInPage() {
       <FakeMatchBackground />
       {isSupabaseAuthEnabled()
         ? <SupabaseAuthForm mode="sign-in" />
-        : <LocalAuthForm mode="sign-in" seedViewers={MOCK_VIEWERS} />}
+        : isLocalAuthEnabled()
+          ? <LocalAuthForm mode="sign-in" seedViewers={MOCK_VIEWERS} />
+          : <AuthUnavailableCard />}
     </main>
   );
 }

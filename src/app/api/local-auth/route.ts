@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { handleRouteError } from "@/lib/api";
+import { isLocalAuthEnabled } from "@/lib/config";
 import {
   createLocalViewer,
   getLocalViewerByUsername,
@@ -25,6 +26,10 @@ const localAuthSchema = z.discriminatedUnion("mode", [
 
 export async function POST(request: Request) {
   try {
+    if (!isLocalAuthEnabled()) {
+      return NextResponse.json({ error: "Local auth is disabled." }, { status: 404 });
+    }
+
     const payload = localAuthSchema.parse(await request.json());
 
     const viewer = payload.mode === "sign-in"
@@ -68,6 +73,10 @@ export async function POST(request: Request) {
 }
 
 export async function DELETE() {
+  if (!isLocalAuthEnabled()) {
+    return NextResponse.json({ error: "Local auth is disabled." }, { status: 404 });
+  }
+
   const response = NextResponse.json({ ok: true });
   response.cookies.set(LOCAL_VIEWER_COOKIE, "", {
     httpOnly: false,

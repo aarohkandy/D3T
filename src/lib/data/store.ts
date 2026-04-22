@@ -7,7 +7,6 @@ import {
   applyMoveToState,
   createInitialGameState,
   createRandomStarter,
-  getLegalMoves,
   isLegalMove,
   oppositeMark,
   type D3TGameState,
@@ -25,8 +24,6 @@ import type {
   HubData,
   MoveRecord,
   PlayerMark,
-  ProfilePageData,
-  QueueEntryAggregate,
   TimePresetId,
   UserProfile,
 } from "@/lib/data/types";
@@ -120,20 +117,11 @@ type PersistedChallenge = {
   updatedAt: Date;
 };
 
-type PersistedQueueEntry = {
-  id: string;
-  userId: string;
-  presetId: TimePresetId;
-  ratingSnapshot: number;
-  queuedAt: Date;
-};
-
 type MemoryStore = {
   users: Map<string, UserProfile>;
   games: Map<string, PersistedGame>;
   moves: Map<string, PersistedMove[]>;
   challenges: Map<string, PersistedChallenge>;
-  queueEntries: Map<string, PersistedQueueEntry>;
 };
 
 declare global {
@@ -147,7 +135,6 @@ function getMemoryStore(): MemoryStore {
       games: new Map(),
       moves: new Map(),
       challenges: new Map(),
-      queueEntries: new Map(),
     };
   }
 
@@ -185,17 +172,6 @@ export function getPresetById(presetId?: string | null) {
 
 function getPresetSummary(presetId: TimePresetId) {
   return { ...getPresetById(presetId) };
-}
-
-function queueBandForEntry(entry: PersistedQueueEntry, at = now()) {
-  const elapsedMs = Math.max(0, at.getTime() - entry.queuedAt.getTime());
-  const expansions = Math.floor(elapsedMs / 10_000);
-  const band = Math.min(600, 200 + expansions * 100);
-
-  return {
-    min: entry.ratingSnapshot - band,
-    max: entry.ratingSnapshot + band,
-  };
 }
 
 function getUserMap(ids: Array<string | null | undefined>) {
@@ -314,11 +290,6 @@ function resolveDisconnectState(game: PersistedGame, at = now()) {
   );
 }
 
-function calculateRatingDelta(ratingA: number, ratingB: number, scoreA: number, k = 24) {
-  const expectedA = 1 / (1 + 10 ** ((ratingB - ratingA) / 400));
-  return Math.round(k * (scoreA - expectedA));
-}
-
 function finalizeStats(game: PersistedGame) {
   if (!game.playerXId || !game.playerOId) {
     return;
@@ -344,15 +315,6 @@ function finalizeStats(game: PersistedGame) {
     playerO.wins += 1;
     playerX.losses += 1;
   }
-
-  if (game.mode === "quickplay" && game.rated) {
-    const scoreX = isDraw ? 0.5 : game.winnerId === game.playerXId ? 1 : 0;
-    const deltaX = calculateRatingDelta(playerX.quickplayRating, playerO.quickplayRating, scoreX);
-    playerX.quickplayRating += deltaX;
-    playerO.quickplayRating -= deltaX;
-    playerX.quickplayGamesPlayed += 1;
-    playerO.quickplayGamesPlayed += 1;
-  }
 }
 
 function buildMoveRecord(move: PersistedMove): MoveRecord {
@@ -364,18 +326,6 @@ function buildMoveRecord(move: PersistedMove): MoveRecord {
     move: move.move,
     resultingState: move.resultingState,
     createdAt: move.createdAt.toISOString(),
-  };
-}
-
-function buildQueueAggregate(entry: PersistedQueueEntry): QueueEntryAggregate {
-  const band = queueBandForEntry(entry);
-  return {
-    id: entry.id,
-    userId: entry.userId,
-    preset: getPresetSummary(entry.presetId),
-    queuedAt: entry.queuedAt.toISOString(),
-    searchMinRating: band.min,
-    searchMaxRating: band.max,
   };
 }
 
@@ -460,17 +410,9 @@ function findActiveGameForUser(userId: string) {
     .find((game) => game.status === "active") ?? null;
 }
 
-function findQueueEntryForUser(userId: string) {
-  return Array.from(getMemoryStore().queueEntries.values()).find((entry) => entry.userId === userId) ?? null;
-}
-
 function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string }) {
   if (findActiveGameForUser(userId)) {
     throw new AppError("Finish your current game before starting another one.", 409);
-  }
-
-  if (findQueueEntryForUser(userId)) {
-    throw new AppError("You are already searching for a game.", 409);
   }
 
   const pendingChallenge = Array.from(getMemoryStore().challenges.values()).find(
@@ -564,8 +506,6 @@ export async function ensureViewerUser(viewer: AppViewer) {
     wins: 0,
     losses: 0,
     draws: 0,
-    quickplayRating: 1200,
-    quickplayGamesPlayed: 0,
   };
 
   store.users.set(profile.id, profile);
@@ -592,106 +532,13 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
     }
     resolveDisconnectState(activeGame);
   }
-  const queueEntry = findQueueEntryForUser(viewer.id);
-
   return {
     viewer,
     activeGame: activeGame ? buildGameAggregate(activeGame) : null,
-    queueEntry: queueEntry ? buildQueueAggregate(queueEntry) : null,
     incomingChallenges: listChallengesForUser(viewer.id, "incoming").map(buildChallengeAggregate),
     outgoingChallenges: listChallengesForUser(viewer.id, "outgoing").map(buildChallengeAggregate),
     presets: getPresetOptions(),
   };
-}
-
-function canMatchEntries(left: PersistedQueueEntry, right: PersistedQueueEntry) {
-  if (left.presetId !== right.presetId) {
-    return false;
-  }
-
-  const leftBand = queueBandForEntry(left);
-  const rightBand = queueBandForEntry(right);
-
-  return (
-    right.ratingSnapshot >= leftBand.min &&
-    right.ratingSnapshot <= leftBand.max &&
-    left.ratingSnapshot >= rightBand.min &&
-    left.ratingSnapshot <= rightBand.max
-  );
-}
-
-function removeQueueEntry(entryId: string) {
-  getMemoryStore().queueEntries.delete(entryId);
-}
-
-export async function queueForQuickPlay(viewer: AppViewer, presetId: TimePresetId) {
-  if (isPostgresEnabled()) {
-    return postgresStore.queueForQuickPlay(viewer, presetId);
-  }
-
-  const profile = await ensureViewerUser(viewer);
-  assertNoLiveCommitments(viewer.id);
-
-  const store = getMemoryStore();
-  const existing = Array.from(store.queueEntries.values()).find((entry) => entry.userId === viewer.id);
-  if (existing) {
-    return {
-      queueEntry: buildQueueAggregate(existing),
-      game: null,
-    };
-  }
-
-  const entry: PersistedQueueEntry = {
-    id: randomId("queue"),
-    userId: viewer.id,
-    presetId: getPresetById(presetId).id,
-    ratingSnapshot: profile.quickplayRating,
-    queuedAt: now(),
-  };
-
-  const opponentEntry = Array.from(store.queueEntries.values())
-    .filter((candidate) => candidate.userId !== viewer.id)
-    .sort((left, right) => left.queuedAt.getTime() - right.queuedAt.getTime())
-    .find((candidate) => canMatchEntries(entry, candidate));
-
-  if (opponentEntry) {
-    const game = createFreshGame({
-      mode: "quickplay",
-      presetId: entry.presetId,
-      creatorId: viewer.id,
-      playerXId: opponentEntry.userId,
-      playerOId: viewer.id,
-      rated: true,
-    });
-
-    store.games.set(game.id, game);
-    removeQueueEntry(opponentEntry.id);
-
-    return {
-      queueEntry: null,
-      game: buildGameAggregate(game),
-    };
-  }
-
-  store.queueEntries.set(entry.id, entry);
-
-  return {
-    queueEntry: buildQueueAggregate(entry),
-    game: null,
-  };
-}
-
-export async function cancelQuickPlay(viewer: AppViewer) {
-  if (isPostgresEnabled()) {
-    return postgresStore.cancelQuickPlay(viewer);
-  }
-
-  const existing = findQueueEntryForUser(viewer.id);
-  if (existing) {
-    removeQueueEntry(existing.id);
-  }
-
-  return null;
 }
 
 export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
@@ -1060,54 +907,6 @@ export async function rematchGame(viewer: AppViewer, gameId: string) {
   return buildGameAggregate(rematch);
 }
 
-export async function getProfilePageData(username: string): Promise<ProfilePageData | null> {
-  if (isPostgresEnabled()) {
-    return postgresStore.getProfilePageData(username);
-  }
-
-  const profile = getStoreUserByUsername(username);
-  if (!profile) {
-    return null;
-  }
-
-  const recentGames = Array.from(getMemoryStore().games.values())
-    .filter((game) => [game.playerXId, game.playerOId].includes(profile.id))
-    .filter((game) => ["finished", "forfeit"].includes(game.status))
-    .sort((left, right) => right.updatedAt.getTime() - left.updatedAt.getTime())
-    .slice(0, appConfig.profileStatWindowSize)
-    .map(buildGameAggregate);
-
-  return {
-    profile,
-    recentGames,
-  };
-}
-
-export async function createPrivateGame(_viewer: AppViewer) {
-  if (isPostgresEnabled()) {
-    return postgresStore.createPrivateGame(_viewer);
-  }
-
-  void _viewer;
-  throw new AppError("Use quick play or friend challenges from the play hub.", 410);
-}
-
-export async function createChallengeGame(viewer: AppViewer, opponentUsername: string) {
-  if (isPostgresEnabled()) {
-    return postgresStore.createChallengeGame(viewer, opponentUsername);
-  }
-
-  return createChallenge(viewer, opponentUsername, "blitz");
-}
-
-export async function joinPrivateGame(viewer: AppViewer, gameId: string) {
-  if (isPostgresEnabled()) {
-    return postgresStore.joinPrivateGame(viewer, gameId);
-  }
-
-  return getGameAggregate(viewer, gameId);
-}
-
 export async function getPendingChallenges(viewer: AppViewer) {
   if (isPostgresEnabled()) {
     return postgresStore.getPendingChallenges(viewer);
@@ -1118,25 +917,6 @@ export async function getPendingChallenges(viewer: AppViewer) {
     incomingChallenges: listChallengesForUser(viewer.id, "incoming").map(buildChallengeAggregate),
     outgoingChallenges: listChallengesForUser(viewer.id, "outgoing").map(buildChallengeAggregate),
   };
-}
-
-export async function getQueueState(viewer: AppViewer) {
-  if (isPostgresEnabled()) {
-    return postgresStore.getQueueState(viewer);
-  }
-
-  await ensureViewerUser(viewer);
-  const entry = findQueueEntryForUser(viewer.id);
-  return entry ? buildQueueAggregate(entry) : null;
-}
-
-export async function getLegalMovesForGame(viewer: AppViewer, gameId: string) {
-  if (isPostgresEnabled()) {
-    return postgresStore.getLegalMovesForGame(viewer, gameId);
-  }
-
-  const game = await getGameAggregate(viewer, gameId);
-  return getLegalMoves(game.state);
 }
 
 export async function markForcedTargetHintSeen(viewer: AppViewer) {

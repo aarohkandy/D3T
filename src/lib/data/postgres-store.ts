@@ -10,7 +10,6 @@ import {
   applyMoveToState,
   createInitialGameState,
   createRandomStarter,
-  getLegalMoves,
   isLegalMove,
   oppositeMark,
   type D3TGameState,
@@ -28,7 +27,6 @@ import type {
   HubData,
   MoveRecord,
   PlayerMark,
-  ProfilePageData,
   TimePresetId,
   UserProfile,
 } from "@/lib/data/types";
@@ -65,6 +63,7 @@ type PersistedGame = {
   playerORemainingMs: number;
   turnStartedAt: Date | null;
   state: D3TGameState;
+  statsFinalized: boolean;
   createdAt: Date;
   updatedAt: Date;
   finishedAt: Date | null;
@@ -134,8 +133,6 @@ function rowToProfile(row: DbProfile): UserProfile {
     wins: row.wins,
     losses: row.losses,
     draws: row.draws,
-    quickplayRating: row.quickplayRating,
-    quickplayGamesPlayed: row.quickplayGamesPlayed,
   };
 }
 
@@ -165,6 +162,7 @@ function rowToGame(row: DbGame): PersistedGame {
     playerORemainingMs: row.playerORemainingMs,
     turnStartedAt: row.turnStartedAt,
     state: row.currentStateJson,
+    statsFinalized: Boolean(row.statsFinalized),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     finishedAt: row.finishedAt,
@@ -297,11 +295,6 @@ function resolveDisconnectState(game: PersistedGame, at = now()) {
   game.disconnectExpiresAt = new Date((game.playerOLastSeenAt?.getTime() ?? at.getTime()) + appConfig.disconnectGraceMs);
 }
 
-function calculateRatingDelta(ratingA: number, ratingB: number, scoreA: number, k = 24) {
-  const expectedA = 1 / (1 + 10 ** ((ratingB - ratingA) / 400));
-  return Math.round(k * (scoreA - expectedA));
-}
-
 function getRuntimeSignature(game: PersistedGame) {
   return JSON.stringify({
     status: game.status,
@@ -313,6 +306,7 @@ function getRuntimeSignature(game: PersistedGame) {
     playerORemainingMs: game.playerORemainingMs,
     turnStartedAt: toIso(game.turnStartedAt),
     finishedAt: toIso(game.finishedAt),
+    statsFinalized: game.statsFinalized,
   });
 }
 
@@ -518,6 +512,7 @@ function createFreshGame(params: {
     playerORemainingMs: preset.initialMs,
     turnStartedAt: timestamp,
     state,
+    statsFinalized: false,
     createdAt: timestamp,
     updatedAt: timestamp,
     finishedAt: null,
@@ -555,6 +550,7 @@ async function saveGame(db: ReturnType<typeof requireDb>, game: PersistedGame) {
       playerORemainingMs: game.playerORemainingMs,
       turnStartedAt: game.turnStartedAt,
       currentStateJson: game.state,
+      statsFinalized: game.statsFinalized ? 1 : 0,
       updatedAt: game.updatedAt,
       finishedAt: game.finishedAt,
     })
@@ -562,63 +558,80 @@ async function saveGame(db: ReturnType<typeof requireDb>, game: PersistedGame) {
 }
 
 async function persistStats(game: PersistedGame) {
+  if (game.statsFinalized) {
+    return;
+  }
+
   if (!game.playerXId || !game.playerOId) {
     return;
   }
 
+  const playerXId = game.playerXId;
+  const playerOId = game.playerOId;
   const db = requireDb();
-  const rows = await db.query.profilesTable.findMany({
-    where: inArray(profilesTable.id, [game.playerXId, game.playerOId]),
+  let alreadyFinalized = false;
+  let statsApplied = false;
+
+  await db.transaction(async (tx) => {
+    const claimed = await tx
+      .update(gamesTable)
+      .set({
+        statsFinalized: 1,
+        updatedAt: now(),
+      })
+      .where(and(eq(gamesTable.id, game.id), eq(gamesTable.statsFinalized, 0)))
+      .returning({ id: gamesTable.id });
+
+    if (claimed.length === 0) {
+      alreadyFinalized = true;
+      return;
+    }
+
+    const rows = await tx
+      .select()
+      .from(profilesTable)
+      .where(inArray(profilesTable.id, [playerXId, playerOId]));
+
+    const playerX = rows.find((row) => row.id === playerXId);
+    const playerO = rows.find((row) => row.id === playerOId);
+
+    if (!playerX || !playerO) {
+      throw new AppError("Could not finalize game stats.", 500);
+    }
+
+    const updatedX = { ...playerX };
+    const updatedO = { ...playerO };
+    const isDraw = !game.winnerId;
+
+    if (isDraw) {
+      updatedX.draws += 1;
+      updatedO.draws += 1;
+    } else if (game.winnerId === playerXId) {
+      updatedX.wins += 1;
+      updatedO.losses += 1;
+    } else if (game.winnerId === playerOId) {
+      updatedO.wins += 1;
+      updatedX.losses += 1;
+    }
+
+    await tx.update(profilesTable).set({
+      wins: updatedX.wins,
+      losses: updatedX.losses,
+      draws: updatedX.draws,
+      updatedAt: now(),
+    }).where(eq(profilesTable.id, updatedX.id));
+
+    await tx.update(profilesTable).set({
+      wins: updatedO.wins,
+      losses: updatedO.losses,
+      draws: updatedO.draws,
+      updatedAt: now(),
+    }).where(eq(profilesTable.id, updatedO.id));
+
+    statsApplied = true;
   });
 
-  const playerX = rows.find((row) => row.id === game.playerXId);
-  const playerO = rows.find((row) => row.id === game.playerOId);
-
-  if (!playerX || !playerO) {
-    return;
-  }
-
-  const updatedX = { ...playerX };
-  const updatedO = { ...playerO };
-  const isDraw = !game.winnerId;
-
-  if (isDraw) {
-    updatedX.draws += 1;
-    updatedO.draws += 1;
-  } else if (game.winnerId === game.playerXId) {
-    updatedX.wins += 1;
-    updatedO.losses += 1;
-  } else if (game.winnerId === game.playerOId) {
-    updatedO.wins += 1;
-    updatedX.losses += 1;
-  }
-
-  if (game.mode === "quickplay" && game.rated) {
-    const scoreX = isDraw ? 0.5 : game.winnerId === game.playerXId ? 1 : 0;
-    const deltaX = calculateRatingDelta(updatedX.quickplayRating, updatedO.quickplayRating, scoreX);
-    updatedX.quickplayRating += deltaX;
-    updatedO.quickplayRating -= deltaX;
-    updatedX.quickplayGamesPlayed += 1;
-    updatedO.quickplayGamesPlayed += 1;
-  }
-
-  await db.update(profilesTable).set({
-    wins: updatedX.wins,
-    losses: updatedX.losses,
-    draws: updatedX.draws,
-    quickplayRating: updatedX.quickplayRating,
-    quickplayGamesPlayed: updatedX.quickplayGamesPlayed,
-    updatedAt: now(),
-  }).where(eq(profilesTable.id, updatedX.id));
-
-  await db.update(profilesTable).set({
-    wins: updatedO.wins,
-    losses: updatedO.losses,
-    draws: updatedO.draws,
-    quickplayRating: updatedO.quickplayRating,
-    quickplayGamesPlayed: updatedO.quickplayGamesPlayed,
-    updatedAt: now(),
-  }).where(eq(profilesTable.id, updatedO.id));
+  game.statsFinalized = alreadyFinalized || statsApplied;
 }
 
 export async function ensureViewerUser(viewer: AppViewer) {
@@ -682,22 +695,10 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
   return {
     viewer,
     activeGame: activeAggregate,
-    queueEntry: null,
     incomingChallenges: await listChallengesForUser(viewer.id, "incoming"),
     outgoingChallenges: await listChallengesForUser(viewer.id, "outgoing"),
     presets: PRESETS,
   };
-}
-
-export async function queueForQuickPlay(_viewer?: AppViewer, _presetId?: TimePresetId) {
-  void _viewer;
-  void _presetId;
-  throw new AppError("Quick Play is disabled for the public beta. Use friend challenges.", 409);
-}
-
-export async function cancelQuickPlay(_viewer?: AppViewer) {
-  void _viewer;
-  return null;
 }
 
 export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
@@ -804,6 +805,7 @@ export async function acceptChallenge(viewer: AppViewer, challengeId: string) {
       playerORemainingMs: game.playerORemainingMs,
       turnStartedAt: game.turnStartedAt,
       currentStateJson: game.state,
+      statsFinalized: game.statsFinalized ? 1 : 0,
       createdAt: game.createdAt,
       updatedAt: game.updatedAt,
       finishedAt: game.finishedAt,
@@ -979,6 +981,7 @@ export async function playMove(viewer: AppViewer, gameId: string, move: D3TMove)
       playerORemainingMs: game.playerORemainingMs,
       turnStartedAt: game.turnStartedAt,
       currentStateJson: game.state,
+      statsFinalized: game.statsFinalized ? 1 : 0,
       updatedAt: game.updatedAt,
       finishedAt: game.finishedAt,
     }).where(eq(gamesTable.id, game.id));
@@ -1127,6 +1130,7 @@ export async function rematchGame(viewer: AppViewer, gameId: string) {
     playerORemainingMs: rematch.playerORemainingMs,
     turnStartedAt: rematch.turnStartedAt,
     currentStateJson: rematch.state,
+    statsFinalized: rematch.statsFinalized ? 1 : 0,
     createdAt: rematch.createdAt,
     updatedAt: rematch.updatedAt,
     finishedAt: rematch.finishedAt,
@@ -1136,65 +1140,11 @@ export async function rematchGame(viewer: AppViewer, gameId: string) {
   return buildGameAggregate(rematch, [], users);
 }
 
-export async function getProfilePageData(username: string): Promise<ProfilePageData | null> {
-  const db = requireDb();
-  const profileRow = await db.query.profilesTable.findFirst({
-    where: eq(profilesTable.username, sanitizeUsername(username)),
-  });
-  if (!profileRow) {
-    return null;
-  }
-
-  const gameRows = await db.query.gamesTable.findMany({
-    where: and(
-      inArray(gamesTable.status, ["finished", "forfeit"]),
-      or(eq(gamesTable.playerXId, profileRow.id), eq(gamesTable.playerOId, profileRow.id)),
-    ),
-    orderBy: (table, { desc: orderDesc }) => [orderDesc(table.updatedAt)],
-    limit: appConfig.profileStatWindowSize,
-  });
-
-  const users = await getUserMap(gameRows.flatMap((game) => [game.playerXId, game.playerOId]));
-  const recentGames = await Promise.all(gameRows.map(async (row) =>
-    buildGameAggregate(rowToGame(row), await loadMovesForGame(row.id), users)
-  ));
-
-  return {
-    profile: rowToProfile(profileRow),
-    recentGames,
-  };
-}
-
-export async function createPrivateGame(_viewer?: AppViewer) {
-  void _viewer;
-  throw new AppError("Private one-off games are not enabled for the public beta.", 409);
-}
-
-export async function createChallengeGame(viewer: AppViewer, opponentUsername: string) {
-  return createChallenge(viewer, opponentUsername, "blitz");
-}
-
-export async function joinPrivateGame(_viewer?: AppViewer, _gameId?: string) {
-  void _viewer;
-  void _gameId;
-  throw new AppError("Private one-off games are not enabled for the public beta.", 409);
-}
-
 export async function getPendingChallenges(viewer: AppViewer) {
   return {
-    incoming: await listChallengesForUser(viewer.id, "incoming"),
-    outgoing: await listChallengesForUser(viewer.id, "outgoing"),
+    incomingChallenges: await listChallengesForUser(viewer.id, "incoming"),
+    outgoingChallenges: await listChallengesForUser(viewer.id, "outgoing"),
   };
-}
-
-export async function getQueueState(_viewer?: AppViewer) {
-  void _viewer;
-  return null;
-}
-
-export async function getLegalMovesForGame(viewer: AppViewer, gameId: string) {
-  const game = await getGameAggregate(viewer, gameId);
-  return getLegalMoves(game.state);
 }
 
 export async function markForcedTargetHintSeen(viewer: AppViewer) {

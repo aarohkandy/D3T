@@ -21,7 +21,6 @@ export const appConfig = {
   hasDatabaseUrl: Boolean(process.env.DATABASE_URL),
   disconnectGraceMs: 2 * 60 * 1000,
   presenceHeartbeatMs: 15_000,
-  profileStatWindowSize: 8,
   challengeExpiryMs: 2 * 60 * 1000,
 } as const;
 
@@ -34,7 +33,7 @@ export function isSupabaseAuthEnabled() {
 }
 
 export function isLocalAuthEnabled() {
-  return !isSupabaseAuthEnabled();
+  return !isProduction() && !isSupabaseAuthEnabled();
 }
 
 export function isPostgresEnabled() {
@@ -47,8 +46,4 @@ export function isSupabaseRealtimeEnabled() {
 
 export function isDevDemoEnabled() {
   return !isProduction() && appConfig.enableDevDemo && isLocalAuthEnabled();
-}
-
-export function isChallengeOnlyBeta() {
-  return isSupabaseAuthEnabled() && isPostgresEnabled();
 }

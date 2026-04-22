@@ -1,7 +1,7 @@
 import type { AppViewer } from "@/lib/auth/session";
 import type { D3TGameState, D3TMove } from "@/lib/d3t/engine";
 
-export type GameMode = "quickplay" | "challenge";
+export type GameMode = "challenge";
 export type GameStatus = "pending" | "active" | "finished" | "forfeit" | "declined" | "expired" | "cancelled";
 export type ChallengeStatus = "pending" | "accepted" | "declined" | "expired" | "cancelled";
 export type PlayerMark = "X" | "O";
@@ -24,8 +24,6 @@ export type UserProfile = {
   wins: number;
   losses: number;
   draws: number;
-  quickplayRating: number;
-  quickplayGamesPlayed: number;
 };
 
 export type MoveRecord = {
@@ -61,15 +59,6 @@ export type ChallengeAggregate = {
   toUser: UserProfile | null;
 };
 
-export type QueueEntryAggregate = {
-  id: string;
-  userId: string;
-  preset: GamePreset;
-  queuedAt: string;
-  searchMinRating: number;
-  searchMaxRating: number;
-};
-
 export type GameAggregate = {
   id: string;
   roomId: string;
@@ -102,13 +91,7 @@ export type GameAggregate = {
 export type HubData = {
   viewer: AppViewer;
   activeGame: GameAggregate | null;
-  queueEntry: QueueEntryAggregate | null;
   incomingChallenges: ChallengeAggregate[];
   outgoingChallenges: ChallengeAggregate[];
   presets: GamePreset[];
-};
-
-export type ProfilePageData = {
-  profile: UserProfile;
-  recentGames: GameAggregate[];
 };

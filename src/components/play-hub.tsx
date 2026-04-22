@@ -86,11 +86,9 @@ function ChallengeCard({
 export function PlayHub({
   viewer,
   initialHub,
-  challengeOnlyBeta,
 }: {
   viewer: AppViewer | null;
   initialHub: HubData | null;
-  challengeOnlyBeta: boolean;
 }) {
   const router = useRouter();
   const [hub, setHub] = useState(initialHub);
@@ -171,43 +169,6 @@ export function PlayHub({
     };
   }, [viewer, refreshHub]);
 
-  async function joinQueue() {
-    const response = await fetch("/api/queue", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify({
-        presetId: selectedPreset,
-      }),
-    });
-    const payload = await response.json();
-
-    if (!response.ok) {
-      toast.error(payload.error ?? "Could not start quick play.");
-      return;
-    }
-
-    if (payload.game?.id) {
-      router.push(`/play/${payload.game.id}`);
-      router.refresh();
-      return;
-    }
-
-    await refreshHub();
-  }
-
-  async function cancelQueue() {
-    const response = await fetch("/api/queue", { method: "DELETE" });
-    const payload = await response.json();
-    if (!response.ok) {
-      toast.error(payload.error ?? "Could not cancel the queue.");
-      return;
-    }
-
-    await refreshHub();
-  }
-
   async function sendChallenge() {
     const response = await fetch("/api/challenges", {
       method: "POST",
@@ -272,16 +233,12 @@ export function PlayHub({
                 <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
                   Live clocks
                 </span>
-                {challengeOnlyBeta ? (
-                  <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
-                    Challenges-first beta
-                  </span>
-                ) : null}
+                <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
+                  Challenges-first beta
+                </span>
               </div>
               <p className="max-w-[460px] text-sm leading-7 text-[color:var(--color-ink-muted)]">
-                {challengeOnlyBeta
-                  ? "Create an account, choose a username, and start with direct friend challenges."
-                  : "Pick a clock, create an account, and start playing in a few seconds."}
+                Create an account, choose a username, and start with direct friend challenges.
               </p>
             </div>
 
@@ -291,9 +248,7 @@ export function PlayHub({
                   Pick a Clock
                 </p>
                 <p className="text-lg font-semibold text-[color:var(--color-ink)]">
-                  {challengeOnlyBeta
-                    ? "Pick the time control you want to send with your challenge."
-                    : "Start with the time control you want to play."}
+                  Pick the time control you want to send with your challenge.
                 </p>
               </div>
 
@@ -328,48 +283,7 @@ export function PlayHub({
 
           <PresetSelector selectedPreset={selectedPreset} onSelect={setSelectedPreset} />
 
-          <div className={challengeOnlyBeta ? "grid gap-3" : "grid gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"}>
-            {!challengeOnlyBeta ? (
-              <div className="rounded-[24px] border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.72)] p-5 shadow-[0_14px_34px_rgba(96,73,48,0.06)]">
-                <p className="text-sm font-semibold text-[color:var(--color-ink)]">Quick Play</p>
-                <p className="mt-2 text-sm leading-6 text-[color:var(--color-ink-muted)]">
-                  Join the {selectedPreset} queue and get paired by time control and a loose rating band.
-                </p>
-                <div className="mt-4 flex items-center gap-3">
-                  {hub?.queueEntry ? (
-                    <>
-                      <Button
-                        size="lg"
-                        onClick={() => {
-                          startTransition(async () => {
-                            await cancelQueue();
-                          });
-                        }}
-                        disabled={pending}
-                      >
-                        Cancel Search
-                      </Button>
-                      <p className="text-sm text-[color:var(--color-ink-muted)]">
-                        Searching {hub.queueEntry.preset.label}
-                      </p>
-                    </>
-                  ) : (
-                    <Button
-                      size="lg"
-                      onClick={() => {
-                        startTransition(async () => {
-                          await joinQueue();
-                        });
-                      }}
-                      disabled={pending}
-                    >
-                      Quick Play
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ) : null}
-
+          <div className="grid gap-3">
             <div className="rounded-[24px] border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.72)] p-5 shadow-[0_14px_34px_rgba(96,73,48,0.06)]">
               <p className="text-sm font-semibold text-[color:var(--color-ink)]">Play a Friend</p>
               <p className="mt-2 text-sm leading-6 text-[color:var(--color-ink-muted)]">

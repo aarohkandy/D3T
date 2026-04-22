@@ -17,6 +17,51 @@ function borderWidth(index: number, step: 3 | 9) {
   return index % step === 0 ? (step === 9 ? 5 : 3) : 1;
 }
 
+type BoardCell = {
+  moveKey: string;
+  t1: number;
+  t2: number;
+  t3: number;
+  style: CSSProperties;
+};
+
+const BOARD_DIMENSION = 27;
+const BOARD_CELLS: BoardCell[] = Array.from(
+  { length: BOARD_DIMENSION * BOARD_DIMENSION },
+  (_, cellIndex) => {
+    const row = Math.floor(cellIndex / BOARD_DIMENSION);
+    const col = cellIndex % BOARD_DIMENSION;
+    const top = {
+      row: Math.floor(row / 9),
+      col: Math.floor(col / 9),
+    };
+    const middle = {
+      row: Math.floor((row % 9) / 3),
+      col: Math.floor((col % 9) / 3),
+    };
+    const leaf = {
+      row: row % 3,
+      col: col % 3,
+    };
+    const t1 = fromGridParts(top.row, top.col);
+    const t2 = fromGridParts(middle.row, middle.col);
+    const t3 = fromGridParts(leaf.row, leaf.col);
+
+    return {
+      moveKey: `${t1}-${t2}-${t3}`,
+      t1,
+      t2,
+      t3,
+      style: {
+        borderTopWidth: borderWidth(row, row % 9 === 0 ? 9 : 3),
+        borderLeftWidth: borderWidth(col, col % 9 === 0 ? 9 : 3),
+        borderRightWidth: col === BOARD_DIMENSION - 1 ? 5 : 0,
+        borderBottomWidth: row === BOARD_DIMENSION - 1 ? 5 : 0,
+      },
+    };
+  },
+);
+
 function ownerClass(owner: "X" | "O" | null) {
   if (owner === "X") {
     return "text-[color:var(--color-mark-x)]";
@@ -81,41 +126,13 @@ export function GameBoard({
           gridTemplateRows: "repeat(27, minmax(0, 1fr))",
         }}
       >
-        {Array.from({ length: 27 * 27 }).map((_, cellIndex) => {
-          const row = Math.floor(cellIndex / 27);
-          const col = cellIndex % 27;
-
-          const top = {
-            row: Math.floor(row / 9),
-            col: Math.floor(col / 9),
-          };
-          const middle = {
-            row: Math.floor((row % 9) / 3),
-            col: Math.floor((col % 9) / 3),
-          };
-          const leaf = {
-            row: row % 3,
-            col: col % 3,
-          };
-
-          const t1 = fromGridParts(top.row, top.col);
-          const t2 = fromGridParts(middle.row, middle.col);
-          const t3 = fromGridParts(leaf.row, leaf.col);
-
+        {BOARD_CELLS.map(({ moveKey, t1, t2, t3, style }) => {
           const middleBoard = state.board.boards[t1 - 1];
           const leafBoard = middleBoard?.boards[t2 - 1];
           const owner = leafBoard?.cells[t3 - 1] ?? null;
           const isForced = state.nextTarget?.t1 === t1 && state.nextTarget?.t2 === t2;
-          const moveKey = `${t1}-${t2}-${t3}`;
           const isLegal = legalMoveSet.has(moveKey);
           const canClick = Boolean(onPlay) && isLegal && !disabled;
-
-          const style: CSSProperties = {
-            borderTopWidth: borderWidth(row, row % 9 === 0 ? 9 : 3),
-            borderLeftWidth: borderWidth(col, col % 9 === 0 ? 9 : 3),
-            borderRightWidth: col === 26 ? 5 : 0,
-            borderBottomWidth: row === 26 ? 5 : 0,
-          };
 
           return (
             <button

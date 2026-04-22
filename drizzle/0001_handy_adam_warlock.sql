@@ -1,0 +1,1 @@
+ALTER TABLE "games" ADD COLUMN "stats_finalized" integer DEFAULT 0 NOT NULL;

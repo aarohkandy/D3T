@@ -18,9 +18,9 @@ export default function DemoPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[color:var(--color-ink-muted)]">
             Localhost Demo
           </p>
-          <h1 className="text-4xl font-semibold tracking-[-0.04em] text-white">Choose a demo account.</h1>
+          <h1 className="text-4xl font-semibold tracking-[-0.04em] text-[color:var(--color-ink)]">Choose a demo account.</h1>
           <p className="mx-auto max-w-[620px] text-base leading-7 text-[color:var(--color-ink-soft)]">
-            This route exists only for local testing while Clerk and the hosted backend are still unconfigured.
+            This route exists only for local testing while Supabase and the hosted database are still unconfigured.
           </p>
         </div>
         <DemoEntryList />
