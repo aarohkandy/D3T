@@ -34,7 +34,7 @@ That keeps localhost usable while the hosted stack is being provisioned.
 If you **do** set:
 
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` or `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
 
@@ -76,9 +76,11 @@ Required production env vars:
 
 - `NEXT_PUBLIC_APP_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 - `DATABASE_URL`
+
+Legacy Supabase projects may call the public key `NEXT_PUBLIC_SUPABASE_ANON_KEY`; D3T supports either name, but new projects should use `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`.
 
 ## Verification
 

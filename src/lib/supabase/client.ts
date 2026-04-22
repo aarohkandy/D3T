@@ -2,18 +2,19 @@
 
 import { createBrowserClient } from "@supabase/ssr";
 
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
+
 let browserClient: ReturnType<typeof createBrowserClient> | null = null;
 
 export function getBrowserSupabaseClient() {
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  const { url, publishableKey, isConfigured } = getSupabasePublicConfig();
+
+  if (!isConfigured) {
     return null;
   }
 
   if (!browserClient) {
-    browserClient = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    );
+    browserClient = createBrowserClient(url, publishableKey);
   }
 
   return browserClient;

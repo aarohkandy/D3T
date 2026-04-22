@@ -6,23 +6,21 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { appConfig, isSupabaseAuthEnabled } from "@/lib/config";
+import { getSupabasePublicConfig } from "@/lib/supabase/env";
 
 function assertSupabaseEnabled() {
   if (!isSupabaseAuthEnabled()) {
     throw new Error("Supabase auth is not configured.");
   }
 
-  return {
-    url: process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  };
+  return getSupabasePublicConfig();
 }
 
 export async function createServerSupabaseClient() {
-  const { url, anonKey } = assertSupabaseEnabled();
+  const { url, publishableKey } = assertSupabaseEnabled();
   const cookieStore = await cookies();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -41,10 +39,10 @@ export async function createServerSupabaseClient() {
 }
 
 export async function createRouteHandlerSupabaseClient(response: NextResponse) {
-  const { url, anonKey } = assertSupabaseEnabled();
+  const { url, publishableKey } = assertSupabaseEnabled();
   const cookieStore = await cookies();
 
-  return createServerClient(url, anonKey, {
+  return createServerClient(url, publishableKey, {
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -64,7 +62,7 @@ export function createAdminSupabaseClient() {
   }
 
   return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    getSupabasePublicConfig().url,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     {
       auth: {
