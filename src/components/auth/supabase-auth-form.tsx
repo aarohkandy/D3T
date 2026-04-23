@@ -1,12 +1,14 @@
 "use client";
 
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter();
@@ -15,6 +17,36 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const [password, setPassword] = useState("");
   const [username, setUsername] = useState("");
   const isSignUp = mode === "sign-up";
+
+  useEffect(() => {
+    const supabase = getBrowserSupabaseClient();
+    if (!supabase) {
+      return;
+    }
+
+    let mounted = true;
+
+    void supabase.auth.getSession().then((result: { data: { session: Session | null } }) => {
+      if (mounted && result.data.session) {
+        router.replace("/");
+        router.refresh();
+      }
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, session: Session | null) => {
+      if (event !== "SIGNED_OUT" && session) {
+        router.replace("/");
+        router.refresh();
+      }
+    });
+
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   async function submit() {
     const response = await fetch(`/api/auth/${mode}`, {
@@ -30,7 +62,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               username,
             }
           : {
-              email,
+              username,
               password,
             },
       ),
@@ -42,7 +74,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
       return;
     }
 
-    router.push("/");
+    router.replace("/");
     router.refresh();
   }
 
@@ -60,7 +92,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             <p className="max-w-[470px] text-base leading-7 text-[color:var(--color-ink-soft)]">
               {isSignUp
                 ? "Use email and password, then challenge people by username."
-                : "Sign in with the same email and password you used when you created your D3T account."}
+                : "Sign in with your D3T username. If this browser already remembers you, we will send you straight in."}
             </p>
           </div>
 
@@ -74,14 +106,27 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             }}
           >
             <div className="grid gap-4 sm:grid-cols-2">
+              {isSignUp ? (
+                <label className="space-y-2 sm:col-span-2">
+                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
+                  <input
+                    type="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    placeholder="you@example.com"
+                    className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
+                  />
+                </label>
+              ) : null}
+
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
+                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
                 <input
-                  type="email"
-                  autoComplete="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@example.com"
+                  autoComplete="username"
+                  value={username}
+                  onChange={(event) => setUsername(event.target.value)}
+                  placeholder="grandmasterttt"
                   className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
                 />
               </label>
@@ -97,25 +142,18 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                   className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
                 />
               </label>
-
-              {isSignUp ? (
-                <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
-                  <input
-                    value={username}
-                    onChange={(event) => setUsername(event.target.value)}
-                    placeholder="grandmasterttt"
-                    className="h-12 w-full rounded-xl border border-[color:var(--color-line-strong)] bg-[rgba(255,252,247,0.9)] px-4 text-[color:var(--color-ink)] outline-none"
-                  />
-                </label>
-              ) : null}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
               <Button
                 type="submit"
                 size="lg"
-                disabled={pending || !email.trim() || password.trim().length < 8 || (isSignUp && username.trim().length < 2)}
+                disabled={
+                  pending ||
+                  password.trim().length < 8 ||
+                  username.trim().length < 2 ||
+                  (isSignUp && !email.trim())
+                }
               >
                 {isSignUp ? "Create Account" : "Log In"}
               </Button>

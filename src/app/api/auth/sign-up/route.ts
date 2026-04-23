@@ -33,6 +33,33 @@ function isDatabaseSetupError(error: unknown) {
   );
 }
 
+function isExistingAccountError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return /already registered|already exists|duplicate|email.*exists|user.*exists/i.test(error.message);
+}
+
+async function signInExistingAccount(params: {
+  email: string;
+  password: string;
+  errorMessage?: string;
+}) {
+  const response = NextResponse.json({ ok: true, remembered: true });
+  const supabase = await createRouteHandlerSupabaseClient(response);
+  const { error } = await supabase.auth.signInWithPassword({
+    email: params.email,
+    password: params.password,
+  });
+
+  if (error) {
+    throw new AppError(params.errorMessage ?? "That account already exists. Log in with the right password.", 409);
+  }
+
+  return response;
+}
+
 export async function POST(request: Request) {
   try {
     if (!isSupabaseAuthEnabled()) {
@@ -61,6 +88,14 @@ export async function POST(request: Request) {
     }
 
     if (existing) {
+      if (existing.email.toLowerCase() === payload.email.toLowerCase()) {
+        return signInExistingAccount({
+          email: payload.email,
+          password: payload.password,
+          errorMessage: "That username already exists. Log in with the right password.",
+        });
+      }
+
       throw new AppError("That username is already taken.", 409);
     }
 
@@ -76,6 +111,13 @@ export async function POST(request: Request) {
     });
 
     if (created.error || !created.data.user) {
+      if (isExistingAccountError(created.error)) {
+        return signInExistingAccount({
+          email: payload.email,
+          password: payload.password,
+        });
+      }
+
       throw new AppError(created.error?.message ?? "Could not create your account.", 400);
     }
 
