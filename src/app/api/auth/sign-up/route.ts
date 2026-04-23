@@ -68,7 +68,7 @@ export async function POST(request: Request) {
 
     const db = getDb();
     if (!db) {
-      throw new AppError("Database is not configured.", 500);
+      throw new AppError("D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.", 500);
     }
 
     const payload = signUpSchema.parse(await request.json());
