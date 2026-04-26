@@ -37,6 +37,7 @@ describe("normalizeDatabaseUrl", () => {
       getDatabaseUrlDiagnostic(
         "postgresql://postgres:secret@aws-0-us-east-1.pooler.supabase.com:6543/postgres",
         "https://kkkjfvjfxmlscntgnfug.supabase.co",
+        null,
       ),
     ).toEqual({
       host: "aws-0-us-east-1.pooler.supabase.com",
@@ -44,9 +45,23 @@ describe("normalizeDatabaseUrl", () => {
       projectRef: "kkkjfvjfxmlscntgnfug",
       usernameHasProjectRef: false,
       usernameHasDot: false,
+      normalizedHostChanged: false,
       normalizedUsernameChanged: true,
       hasPassword: true,
       hasSslMode: true,
     });
+  });
+
+  it("can override the Supabase pooler host while preserving credentials", () => {
+    const url = normalizeDatabaseUrl(
+      "postgresql://postgres.kkkjfvjfxmlscntgnfug:secret@aws-0-us-west-1.pooler.supabase.com:6543/postgres?sslmode=require",
+      "https://kkkjfvjfxmlscntgnfug.supabase.co",
+      "aws-1-us-east-2.pooler.supabase.com",
+    );
+
+    const parsed = new URL(url);
+    expect(parsed.hostname).toBe("aws-1-us-east-2.pooler.supabase.com");
+    expect(parsed.username).toBe("postgres.kkkjfvjfxmlscntgnfug");
+    expect(parsed.password).toBe("secret");
   });
 });
