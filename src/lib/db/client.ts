@@ -20,9 +20,18 @@ export function getDb() {
   }
 
   if (!global.__d3tSql) {
-    const databaseUrl = normalizeDatabaseUrl(process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_URL);
+    const databaseUrl = normalizeDatabaseUrl(
+      process.env.DATABASE_URL,
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      process.env.SUPABASE_POOLER_HOST,
+    );
 
-    console.info("[d3t db] initializing postgres client", getDatabaseUrlDiagnostic(process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_URL));
+    if (process.env.D3T_DB_DEBUG === "true") {
+      console.info(
+        "[d3t db] initializing postgres client",
+        getDatabaseUrlDiagnostic(process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_POOLER_HOST),
+      );
+    }
 
     global.__d3tSql = postgres(databaseUrl, {
       max: 1,
