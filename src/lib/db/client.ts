@@ -5,6 +5,7 @@ import { drizzle } from "drizzle-orm/postgres-js";
 
 import { isPostgresEnabled } from "@/lib/config";
 import * as schema from "@/lib/db/schema";
+import { normalizeDatabaseUrl } from "@/lib/db/url";
 
 declare global {
   var __d3tSql: postgres.Sql | undefined;
@@ -19,7 +20,7 @@ export function getDb() {
   }
 
   if (!global.__d3tSql) {
-    global.__d3tSql = postgres(process.env.DATABASE_URL, {
+    global.__d3tSql = postgres(normalizeDatabaseUrl(process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_URL), {
       max: 1,
       prepare: false,
     });
