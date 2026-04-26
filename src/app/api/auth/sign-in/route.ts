@@ -27,7 +27,7 @@ function isDatabaseSetupError(error: unknown) {
     return false;
   }
 
-  return /relation .* does not exist|column .* does not exist|database.*not configured|password authentication failed|connection/i.test(
+  return /relation .* does not exist|column .* does not exist|database.*not configured|password authentication failed|connection|SASL|SCRAM|ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|ETIMEDOUT|timeout|no pg_hba|SSL|Tenant or user not found|PostgresError/i.test(
     error.message,
   );
 }
