@@ -30,9 +30,9 @@ website: https://d3-t.vercel.app
 privacy_policy_url: https://d3-t.vercel.app/privacy
 terms_url: https://d3-t.vercel.app/terms
 press_kit_url: https://d3-t.vercel.app/presskit
-contact_email: TODO@example.com
-trailer_url: TODO
-status: implementation-ready
+contact_email: owner-email-required-before-outreach
+trailer_url: not-yet-published
+status: go-time-package-ready
 strategy:
   public_site: account friend challenges on Vercel
   portal_build: anonymous guest pass-and-play in one click

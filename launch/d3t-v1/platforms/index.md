@@ -6,12 +6,12 @@ Status definitions: `ready` means the repo has the required path/copy/checklist;
 
 - [CrazyGames](crazygames.md) - blocked until SDK QA + portal ZIP preview pass
 - [Poki](poki.md) - prepared-only because V1 is broad nonexclusive
-- [itch.io](itch.md) - ready after portal ZIP + cover export
-- [Newgrounds](newgrounds.md) - ready after portal ZIP under 10MB + preview art
-- [GameJolt](gamejolt.md) - ready after thumbnail/header export
+- [itch.io](itch.md) - ready with generic portal ZIP and cover exports
+- [Newgrounds](newgrounds.md) - ready with generic portal ZIP under 10MB and preview art
+- [GameJolt](gamejolt.md) - ready with thumbnail/header exports
 - [Y8](y8.md) - ready after portal ZIP + account setup
 - [GameDistribution](gamedistribution.md) - blocked until GD SDK QA
-- [Kongregate](kongregate.md) - ready after portal ZIP
+- [Kongregate](kongregate.md) - ready with generic portal ZIP
 - [Armor Games](armor-games.md) - blocked by curated contact/review
 - [gd.games](gd-games.md) - ready if HTML5 upload is available
 
