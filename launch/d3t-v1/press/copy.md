@@ -1,6 +1,6 @@
 # Press Copy
 
-Status: ready pending final contact email and screenshots.
+Status: ready for drafts. Use a monitored sender email before actually sending.
 
 ## Boilerplate
 
@@ -20,7 +20,7 @@ I am launching D3T, a browser strategy game based on Grandfather Tic-Tac-Toe: Ti
 
 Playable link: https://d3-t.vercel.app
 Press kit: https://d3-t.vercel.app/presskit
-Trailer/GIF: TODO
+Gameplay media: screenshots and press art are in the launch folder. Trailer/GIF can be added later for a stronger pitch.
 
 Happy to send more details or answer questions.
 
