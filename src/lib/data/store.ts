@@ -13,6 +13,7 @@ import {
   type D3TMark,
   type D3TMove,
 } from "@/lib/d3t/engine";
+import { chooseBotMove, getBotThinkTimeMs } from "@/lib/d3t/bot";
 import type {
   ChallengeAggregate,
   ChallengeStatus,
@@ -22,11 +23,19 @@ import type {
   GamePreset,
   GameStatus,
   HubData,
+  QuickplayState,
   MoveRecord,
   PlayerMark,
   TimePresetId,
   UserProfile,
 } from "@/lib/data/types";
+import {
+  getBuiltInBot,
+  getQuickplayBotDelayMs,
+  getStaticRatingForUser,
+  isAutomatedPlayerId,
+  pickBotForRating,
+} from "@/lib/data/bots";
 import { AppError } from "@/lib/data/errors";
 import * as postgresStore from "@/lib/data/postgres-store";
 
@@ -177,7 +186,7 @@ function getPresetSummary(presetId: TimePresetId) {
 function getUserMap(ids: Array<string | null | undefined>) {
   const store = getMemoryStore();
   const entries = Array.from(new Set(ids.filter(Boolean) as string[]))
-    .map((id) => [id, store.users.get(id) ?? null] as const)
+    .map((id) => [id, store.users.get(id) ?? getBuiltInBot(id) ?? null] as const)
     .filter((entry): entry is readonly [string, UserProfile] => Boolean(entry[1]));
 
   return new Map(entries);
@@ -205,6 +214,128 @@ function getOpponentId(game: PersistedGame, viewerId: string) {
   }
 
   return null;
+}
+
+function isQuickplayQueueGame(game: PersistedGame) {
+  return game.mode === "quickplay" && game.status === "pending";
+}
+
+function isBotGame(game: PersistedGame) {
+  return isAutomatedPlayerId(game.playerXId) || isAutomatedPlayerId(game.playerOId);
+}
+
+function resolveQuickplayRating(userId?: string | null) {
+  if (!userId) {
+    return 1200;
+  }
+
+  const builtIn = getStaticRatingForUser(userId);
+  if (typeof builtIn === "number") {
+    return builtIn;
+  }
+
+  return getMemoryStore().users.get(userId)?.quickplayRating ?? 1200;
+}
+
+function pickSeatOrder(gameId: string, firstPlayerId: string, secondPlayerId: string) {
+  return createRandomStarter(() => Math.random()) === "X"
+    ? [firstPlayerId, secondPlayerId] as const
+    : [secondPlayerId, firstPlayerId] as const;
+}
+
+function createPendingQuickplayGame(creatorId: string, presetId: TimePresetId) {
+  const timestamp = now();
+  const preset = getPresetById(presetId);
+  const game: PersistedGame = {
+    id: randomId("game"),
+    roomId: "",
+    inviteUrl: "",
+    mode: "quickplay",
+    status: "pending",
+    rated: true,
+    presetId: preset.id,
+    creatorId,
+    playerXId: creatorId,
+    playerOId: null,
+    starterId: null,
+    currentTurnId: null,
+    winnerId: null,
+    challengeId: null,
+    disconnectPlayerId: null,
+    disconnectExpiresAt: null,
+    playerXLastSeenAt: timestamp,
+    playerOLastSeenAt: null,
+    initialMs: preset.initialMs,
+    incrementMs: preset.incrementMs,
+    playerXRemainingMs: preset.initialMs,
+    playerORemainingMs: preset.initialMs,
+    turnStartedAt: null,
+    state: createInitialGameState("X"),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    finishedAt: null,
+  };
+
+  game.roomId = `game:${game.id}`;
+  game.inviteUrl = `${appConfig.appUrl}/play/${game.id}`;
+  return game;
+}
+
+function activateQuickplayGame(game: PersistedGame, firstPlayerId: string, secondPlayerId: string) {
+  const timestamp = now();
+  const preset = getPresetById(game.presetId);
+  const [playerXId, playerOId] = pickSeatOrder(game.id, firstPlayerId, secondPlayerId);
+  const starterMark = createRandomStarter() as PlayerMark;
+  const starterId = starterMark === "X" ? playerXId : playerOId;
+
+  game.status = "active";
+  game.rated = true;
+  game.playerXId = playerXId;
+  game.playerOId = playerOId;
+  game.starterId = starterId;
+  game.currentTurnId = starterId;
+  game.winnerId = null;
+  game.disconnectPlayerId = null;
+  game.disconnectExpiresAt = null;
+  game.playerXLastSeenAt = timestamp;
+  game.playerOLastSeenAt = timestamp;
+  game.initialMs = preset.initialMs;
+  game.incrementMs = preset.incrementMs;
+  game.playerXRemainingMs = preset.initialMs;
+  game.playerORemainingMs = preset.initialMs;
+  game.turnStartedAt = timestamp;
+  game.state = createInitialGameState(starterMark);
+  game.updatedAt = timestamp;
+  game.finishedAt = null;
+}
+
+function getPendingQuickplayForUser(userId: string) {
+  const store = getMemoryStore();
+
+  return Array.from(store.games.values())
+    .filter((game) => isQuickplayQueueGame(game) && [game.playerXId, game.playerOId, game.creatorId].includes(userId))
+    .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())[0] ?? null;
+}
+
+function listQuickplayCandidates(userId: string, presetId: TimePresetId) {
+  return Array.from(getMemoryStore().games.values())
+    .filter((game) => isQuickplayQueueGame(game))
+    .filter((game) => game.presetId === presetId)
+    .filter((game) => ![game.playerXId, game.playerOId, game.creatorId].includes(userId))
+    .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime());
+}
+
+function getBotThinkDeadline(game: PersistedGame) {
+  if (!game.turnStartedAt || !game.currentTurnId) {
+    return null;
+  }
+
+  const rating = resolveQuickplayRating(game.currentTurnId);
+  return game.turnStartedAt.getTime() + getBotThinkTimeMs({
+    gameId: game.id,
+    moveCount: game.state.moveCount,
+    rating,
+  });
 }
 
 function createClockState(game: PersistedGame, at = now()): GameClockState {
@@ -259,7 +390,7 @@ function resolveClockExpiry(game: PersistedGame, at = now()) {
 }
 
 function resolveDisconnectState(game: PersistedGame, at = now()) {
-  if (game.status !== "active" || !game.playerXId || !game.playerOId) {
+  if (game.status !== "active" || !game.playerXId || !game.playerOId || isBotGame(game)) {
     game.disconnectPlayerId = null;
     game.disconnectExpiresAt = null;
     return;
@@ -296,24 +427,63 @@ function finalizeStats(game: PersistedGame) {
   }
 
   const store = getMemoryStore();
-  const playerX = store.users.get(game.playerXId);
-  const playerO = store.users.get(game.playerOId);
+  const playerX = store.users.get(game.playerXId) ?? getBuiltInBot(game.playerXId);
+  const playerO = store.users.get(game.playerOId) ?? getBuiltInBot(game.playerOId);
 
-  if (!playerX || !playerO) {
+  if (!playerX && !playerO) {
     return;
   }
 
   const isDraw = !game.winnerId;
 
   if (isDraw) {
-    playerX.draws += 1;
-    playerO.draws += 1;
+    if (playerX && !isAutomatedPlayerId(playerX.id)) {
+      playerX.draws += 1;
+    }
+    if (playerO && !isAutomatedPlayerId(playerO.id)) {
+      playerO.draws += 1;
+    }
   } else if (game.winnerId === game.playerXId) {
-    playerX.wins += 1;
-    playerO.losses += 1;
+    if (playerX && !isAutomatedPlayerId(playerX.id)) {
+      playerX.wins += 1;
+    }
+    if (playerO && !isAutomatedPlayerId(playerO.id)) {
+      playerO.losses += 1;
+    }
   } else if (game.winnerId === game.playerOId) {
-    playerO.wins += 1;
-    playerX.losses += 1;
+    if (playerO && !isAutomatedPlayerId(playerO.id)) {
+      playerO.wins += 1;
+    }
+    if (playerX && !isAutomatedPlayerId(playerX.id)) {
+      playerX.losses += 1;
+    }
+  }
+
+  if (game.mode !== "quickplay" || !game.rated) {
+    return;
+  }
+
+  const expectedScore = (rating: number, opponentRating: number) =>
+    1 / (1 + 10 ** ((opponentRating - rating) / 400));
+
+  const xRating = resolveQuickplayRating(game.playerXId);
+  const oRating = resolveQuickplayRating(game.playerOId);
+  const xScore = isDraw ? 0.5 : game.winnerId === game.playerXId ? 1 : 0;
+  const oScore = 1 - xScore;
+  const xExpected = expectedScore(xRating, oRating);
+  const oExpected = expectedScore(oRating, xRating);
+  const kFactor = 24;
+  const xDelta = Math.round(kFactor * (xScore - xExpected));
+  const oDelta = Math.round(kFactor * (oScore - oExpected));
+
+  if (playerX && !isAutomatedPlayerId(playerX.id)) {
+    playerX.quickplayGamesPlayed += 1;
+    playerX.quickplayRating = Math.max(300, playerX.quickplayRating + xDelta);
+  }
+
+  if (playerO && !isAutomatedPlayerId(playerO.id)) {
+    playerO.quickplayGamesPlayed += 1;
+    playerO.quickplayRating = Math.max(300, playerO.quickplayRating + oDelta);
   }
 }
 
@@ -381,6 +551,183 @@ function buildGameAggregate(game: PersistedGame): GameAggregate {
   };
 }
 
+function buildQuickplayState(params?: {
+  game?: PersistedGame | null;
+  aggregate?: GameAggregate | null;
+}): QuickplayState {
+  if (!params?.game) {
+    return {
+      status: "idle",
+      preset: null,
+      queuedAt: null,
+      game: null,
+    };
+  }
+
+  if (params.game.status === "active") {
+    return {
+      status: "matched",
+      preset: getPresetSummary(params.game.presetId),
+      queuedAt: params.game.createdAt.toISOString(),
+      game: params.aggregate ?? buildGameAggregate(params.game),
+    };
+  }
+
+  return {
+    status: "searching",
+    preset: getPresetSummary(params.game.presetId),
+    queuedAt: params.game.createdAt.toISOString(),
+    game: null,
+  };
+}
+
+function applyRecordedMove(game: PersistedGame, playerId: string, move: D3TMove) {
+  if (game.status !== "active") {
+    throw new AppError("This game is not accepting moves.", 409);
+  }
+
+  const playerMark = getCurrentPlayerMark(game, playerId);
+  if (!playerMark) {
+    throw new AppError("You are not seated in this game.", 403);
+  }
+
+  if (!isLegalMove(game.state, move)) {
+    throw new AppError("That move is not legal right now.", 422);
+  }
+
+  const store = getMemoryStore();
+  const beforeClock = createClockState(game);
+  game.playerXRemainingMs = beforeClock.playerXRemainingMs;
+  game.playerORemainingMs = beforeClock.playerORemainingMs;
+
+  if (playerMark === "X") {
+    game.playerXRemainingMs = Math.max(0, game.playerXRemainingMs + game.incrementMs);
+  } else {
+    game.playerORemainingMs = Math.max(0, game.playerORemainingMs + game.incrementMs);
+  }
+
+  const updatedAt = now();
+  const nextState = applyMoveToState(game.state, move, playerMark);
+  game.state = nextState;
+  game.updatedAt = updatedAt;
+  game.playerXLastSeenAt = playerMark === "X" ? updatedAt : game.playerXLastSeenAt;
+  game.playerOLastSeenAt = playerMark === "O" ? updatedAt : game.playerOLastSeenAt;
+
+  const recordedMove: PersistedMove = {
+    id: randomId("move"),
+    gameId: game.id,
+    moveNumber: (store.moves.get(game.id)?.length ?? 0) + 1,
+    playerId,
+    move,
+    resultingState: nextState,
+    createdAt: updatedAt,
+  };
+
+  const currentMoves = store.moves.get(game.id) ?? [];
+  store.moves.set(game.id, [...currentMoves, recordedMove]);
+
+  if (nextState.outcome === "active") {
+    const nextMark = oppositeMark(playerMark);
+    game.currentTurnId = markToUserId(game, nextMark);
+    game.turnStartedAt = updatedAt;
+    game.winnerId = null;
+    game.disconnectPlayerId = null;
+    game.disconnectExpiresAt = null;
+  } else {
+    game.status = "finished";
+    game.currentTurnId = null;
+    game.turnStartedAt = null;
+    game.finishedAt = updatedAt;
+    game.winnerId = nextState.winner ? markToUserId(game, nextState.winner) : null;
+    finalizeStats(game);
+  }
+
+  return recordedMove;
+}
+
+function maybePlayBotTurn(game: PersistedGame) {
+  if (game.status !== "active" || !game.currentTurnId || !isAutomatedPlayerId(game.currentTurnId)) {
+    return false;
+  }
+
+  if (resolveClockExpiry(game)) {
+    finalizeStats(game);
+    return true;
+  }
+
+  const thinkDeadline = getBotThinkDeadline(game);
+  if (!thinkDeadline || thinkDeadline > now().getTime()) {
+    return false;
+  }
+
+  const rating = resolveQuickplayRating(game.currentTurnId);
+  const move = chooseBotMove({
+    state: game.state,
+    rating,
+    seed: `${game.id}:${game.state.moveCount}:${game.currentTurnId}`,
+  });
+
+  applyRecordedMove(game, game.currentTurnId, move);
+  return true;
+}
+
+function syncQuickplayState(viewerId: string) {
+  const activeGame = findActiveGameForUser(viewerId);
+  if (activeGame) {
+    if (activeGame.mode !== "quickplay") {
+      return buildQuickplayState();
+    }
+
+    if (maybePlayBotTurn(activeGame)) {
+      resolveDisconnectState(activeGame);
+    }
+
+    return buildQuickplayState({
+      game: activeGame,
+      aggregate: buildGameAggregate(activeGame),
+    });
+  }
+
+  const pending = getPendingQuickplayForUser(viewerId);
+  if (!pending) {
+    return buildQuickplayState();
+  }
+
+  const viewerRating = resolveQuickplayRating(viewerId);
+  const candidates = listQuickplayCandidates(viewerId, pending.presetId)
+    .sort((left, right) => {
+      const leftGap = Math.abs(resolveQuickplayRating(left.creatorId) - viewerRating);
+      const rightGap = Math.abs(resolveQuickplayRating(right.creatorId) - viewerRating);
+      if (leftGap !== rightGap) {
+        return leftGap - rightGap;
+      }
+      return left.createdAt.getTime() - right.createdAt.getTime();
+    });
+
+  if (candidates[0]) {
+    const host = candidates[0].createdAt.getTime() <= pending.createdAt.getTime() ? candidates[0] : pending;
+    const guest = host.id === pending.id ? candidates[0] : pending;
+    activateQuickplayGame(host, host.creatorId, viewerId === host.creatorId ? guest.creatorId : viewerId);
+    getMemoryStore().games.delete(guest.id);
+    return buildQuickplayState({
+      game: host,
+      aggregate: buildGameAggregate(host),
+    });
+  }
+
+  const botDelayMs = getQuickplayBotDelayMs(pending.id);
+  if (pending.createdAt.getTime() + botDelayMs <= now().getTime()) {
+    const bot = pickBotForRating(viewerRating);
+    activateQuickplayGame(pending, viewerId, bot.id);
+    return buildQuickplayState({
+      game: pending,
+      aggregate: buildGameAggregate(pending),
+    });
+  }
+
+  return buildQuickplayState({ game: pending });
+}
+
 function expireChallenges(at = now()) {
   const store = getMemoryStore();
 
@@ -410,7 +757,7 @@ function findActiveGameForUser(userId: string) {
     .find((game) => game.status === "active") ?? null;
 }
 
-function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string }) {
+function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string }) {
   if (findActiveGameForUser(userId)) {
     throw new AppError("Finish your current game before starting another one.", 409);
   }
@@ -424,6 +771,11 @@ function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?:
 
   if (pendingChallenge) {
     throw new AppError("Resolve your current challenge before starting another one.", 409);
+  }
+
+  const quickplay = getPendingQuickplayForUser(userId);
+  if (quickplay && quickplay.id !== options?.ignoreQuickplayGameId) {
+    throw new AppError("Finish finding your current game before starting another one.", 409);
   }
 }
 
@@ -506,6 +858,8 @@ export async function ensureViewerUser(viewer: AppViewer) {
     wins: 0,
     losses: 0,
     draws: 0,
+    quickplayRating: 1200,
+    quickplayGamesPlayed: 0,
   };
 
   store.users.set(profile.id, profile);
@@ -524,21 +878,99 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
 
   await ensureViewerUser(viewer);
   expireChallenges();
-
+  const quickplay = syncQuickplayState(viewer.id);
   const activeGame = findActiveGameForUser(viewer.id);
   if (activeGame) {
     if (resolveClockExpiry(activeGame)) {
       finalizeStats(activeGame);
     }
+    maybePlayBotTurn(activeGame);
     resolveDisconnectState(activeGame);
   }
   return {
     viewer,
     activeGame: activeGame ? buildGameAggregate(activeGame) : null,
+    quickplay: activeGame?.mode === "quickplay"
+      ? buildQuickplayState({
+          game: activeGame,
+          aggregate: buildGameAggregate(activeGame),
+        })
+      : quickplay,
     incomingChallenges: listChallengesForUser(viewer.id, "incoming").map(buildChallengeAggregate),
     outgoingChallenges: listChallengesForUser(viewer.id, "outgoing").map(buildChallengeAggregate),
     presets: getPresetOptions(),
   };
+}
+
+export async function getQuickplayStatus(viewer: AppViewer) {
+  if (isPostgresEnabled()) {
+    return postgresStore.getQuickplayStatus(viewer);
+  }
+
+  await ensureViewerUser(viewer);
+  return syncQuickplayState(viewer.id);
+}
+
+export async function joinQuickplay(viewer: AppViewer, presetId: TimePresetId) {
+  if (isPostgresEnabled()) {
+    return postgresStore.joinQuickplay(viewer, presetId);
+  }
+
+  await ensureViewerUser(viewer);
+  expireChallenges();
+
+  const activeGame = findActiveGameForUser(viewer.id);
+  if (activeGame) {
+    if (activeGame.mode !== "quickplay") {
+      throw new AppError("Finish your current game before starting another one.", 409);
+    }
+
+    return buildQuickplayState({
+      game: activeGame,
+      aggregate: buildGameAggregate(activeGame),
+    });
+  }
+
+  const existingPending = getPendingQuickplayForUser(viewer.id);
+  if (existingPending && existingPending.presetId !== presetId) {
+    getMemoryStore().games.delete(existingPending.id);
+  }
+
+  assertNoLiveCommitments(viewer.id, { ignoreQuickplayGameId: existingPending?.id });
+
+  const refreshedPending = getPendingQuickplayForUser(viewer.id);
+  if (refreshedPending) {
+    return syncQuickplayState(viewer.id);
+  }
+
+  const candidates = listQuickplayCandidates(viewer.id, presetId);
+  if (candidates[0]) {
+    activateQuickplayGame(candidates[0], candidates[0].creatorId, viewer.id);
+    return buildQuickplayState({
+      game: candidates[0],
+      aggregate: buildGameAggregate(candidates[0]),
+    });
+  }
+
+  const ticket = createPendingQuickplayGame(viewer.id, presetId);
+  getMemoryStore().games.set(ticket.id, ticket);
+  return buildQuickplayState({ game: ticket });
+}
+
+export async function leaveQuickplay(viewer: AppViewer) {
+  if (isPostgresEnabled()) {
+    return postgresStore.leaveQuickplay(viewer);
+  }
+
+  await ensureViewerUser(viewer);
+
+  for (const game of Array.from(getMemoryStore().games.values())) {
+    if (isQuickplayQueueGame(game) && [game.playerXId, game.playerOId, game.creatorId].includes(viewer.id)) {
+      getMemoryStore().games.delete(game.id);
+    }
+  }
+
+  return buildQuickplayState();
 }
 
 export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
@@ -678,6 +1110,7 @@ export async function getGameAggregate(viewer: AppViewer, gameId: string) {
     finalizeStats(game);
   }
 
+  maybePlayBotTurn(game);
   resolveDisconnectState(game);
 
   return buildGameAggregate(game);
@@ -713,59 +1146,7 @@ export async function playMove(viewer: AppViewer, gameId: string, move: D3TMove)
     throw new AppError("It is not your turn.", 409);
   }
 
-  const playerMark = getCurrentPlayerMark(game, viewer.id);
-  if (!playerMark) {
-    throw new AppError("You are not seated in this game.", 403);
-  }
-
-  if (!isLegalMove(game.state, move)) {
-    throw new AppError("That move is not legal right now.", 422);
-  }
-
-  const beforeClock = createClockState(game);
-  game.playerXRemainingMs = beforeClock.playerXRemainingMs;
-  game.playerORemainingMs = beforeClock.playerORemainingMs;
-
-  if (playerMark === "X") {
-    game.playerXRemainingMs = Math.max(0, game.playerXRemainingMs + game.incrementMs);
-  } else {
-    game.playerORemainingMs = Math.max(0, game.playerORemainingMs + game.incrementMs);
-  }
-
-  const nextState = applyMoveToState(game.state, move, playerMark);
-  game.state = nextState;
-  game.updatedAt = now();
-  game.playerXLastSeenAt = playerMark === "X" ? game.updatedAt : game.playerXLastSeenAt;
-  game.playerOLastSeenAt = playerMark === "O" ? game.updatedAt : game.playerOLastSeenAt;
-
-  const recordedMove: PersistedMove = {
-    id: randomId("move"),
-    gameId: game.id,
-    moveNumber: (store.moves.get(game.id)?.length ?? 0) + 1,
-    playerId: viewer.id,
-    move,
-    resultingState: nextState,
-    createdAt: game.updatedAt,
-  };
-
-  const currentMoves = store.moves.get(game.id) ?? [];
-  store.moves.set(game.id, [...currentMoves, recordedMove]);
-
-  if (nextState.outcome === "active") {
-    const nextMark = oppositeMark(playerMark);
-    game.currentTurnId = markToUserId(game, nextMark);
-    game.turnStartedAt = game.updatedAt;
-    game.winnerId = null;
-    game.disconnectPlayerId = null;
-    game.disconnectExpiresAt = null;
-  } else {
-    game.status = "finished";
-    game.currentTurnId = null;
-    game.turnStartedAt = null;
-    game.finishedAt = game.updatedAt;
-    game.winnerId = nextState.winner ? markToUserId(game, nextState.winner) : null;
-    finalizeStats(game);
-  }
+  applyRecordedMove(game, viewer.id, move);
 
   return buildGameAggregate(game);
 }

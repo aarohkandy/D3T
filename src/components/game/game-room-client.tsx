@@ -135,16 +135,21 @@ export function GameRoomClient({
     });
 
     void channel?.subscribe();
+    const pollMs = game.status === "active" && game.currentTurnId !== viewer.id
+      ? 2_000
+      : supabase
+        ? 10_000
+        : 2_000;
 
     const interval = window.setInterval(() => {
       void refreshGame();
-    }, supabase ? 10_000 : 2_000);
+    }, pollMs);
 
     return () => {
       window.clearInterval(interval);
       void channel?.unsubscribe();
     };
-  }, [game.id]);
+  }, [game.currentTurnId, game.id, game.status, viewer.id]);
 
   useEffect(() => {
     if (!viewerIsPlayer || game.status !== "active") {

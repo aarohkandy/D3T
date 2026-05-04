@@ -28,6 +28,8 @@ export const appConfig = {
   disconnectGraceMs: 2 * 60 * 1000,
   presenceHeartbeatMs: 15_000,
   challengeExpiryMs: 2 * 60 * 1000,
+  quickplayBotMinWaitMs: 30_000,
+  quickplayBotMaxWaitMs: 60_000,
 } as const;
 
 export function isProduction() {

@@ -15,6 +15,7 @@ import {
   type D3TGameState,
   type D3TMove,
 } from "@/lib/d3t/engine";
+import { chooseBotMove, getBotThinkTimeMs } from "@/lib/d3t/bot";
 import { AppError } from "@/lib/data/errors";
 import type {
   ChallengeAggregate,
@@ -25,11 +26,19 @@ import type {
   GamePreset,
   GameStatus,
   HubData,
+  QuickplayState,
   MoveRecord,
   PlayerMark,
   TimePresetId,
   UserProfile,
 } from "@/lib/data/types";
+import {
+  getBuiltInBot,
+  getQuickplayBotDelayMs,
+  getStaticRatingForUser,
+  isAutomatedPlayerId,
+  pickBotForRating,
+} from "@/lib/data/bots";
 
 const PRESETS: GamePreset[] = [
   { id: "bullet", label: "1 + 0", initialMs: 60_000, incrementMs: 0, rated: true, description: "Bullet" },
@@ -133,6 +142,8 @@ function rowToProfile(row: DbProfile): UserProfile {
     wins: row.wins,
     losses: row.losses,
     draws: row.draws,
+    quickplayRating: row.quickplayRating,
+    quickplayGamesPlayed: row.quickplayGamesPlayed,
   };
 }
 
@@ -219,6 +230,103 @@ function markToUserId(game: PersistedGame, mark: PlayerMark) {
   return mark === "X" ? game.playerXId : game.playerOId;
 }
 
+function isBotGame(game: PersistedGame) {
+  return isAutomatedPlayerId(game.playerXId) || isAutomatedPlayerId(game.playerOId);
+}
+
+async function resolveQuickplayRating(userId?: string | null) {
+  if (!userId) {
+    return 1200;
+  }
+
+  const builtIn = getStaticRatingForUser(userId);
+  if (typeof builtIn === "number") {
+    return builtIn;
+  }
+
+  const row = await requireDb().query.profilesTable.findFirst({
+    where: eq(profilesTable.id, userId),
+  });
+
+  return row?.quickplayRating ?? 1200;
+}
+
+function pickSeatOrder(firstPlayerId: string, secondPlayerId: string) {
+  return createRandomStarter(() => Math.random()) === "X"
+    ? [firstPlayerId, secondPlayerId] as const
+    : [secondPlayerId, firstPlayerId] as const;
+}
+
+function createPendingQuickplayGame(creatorId: string, presetId: TimePresetId) {
+  const timestamp = now();
+  const preset = getPresetById(presetId);
+  const game: PersistedGame = {
+    id: randomId("game"),
+    roomId: "",
+    inviteUrl: "",
+    mode: "quickplay",
+    status: "pending",
+    rated: true,
+    presetId: preset.id,
+    creatorId,
+    playerXId: creatorId,
+    playerOId: null,
+    starterId: null,
+    currentTurnId: null,
+    winnerId: null,
+    challengeId: null,
+    disconnectPlayerId: null,
+    disconnectExpiresAt: null,
+    playerXLastSeenAt: timestamp,
+    playerOLastSeenAt: null,
+    initialMs: preset.initialMs,
+    incrementMs: preset.incrementMs,
+    playerXRemainingMs: preset.initialMs,
+    playerORemainingMs: preset.initialMs,
+    turnStartedAt: null,
+    state: createInitialGameState("X"),
+    statsFinalized: false,
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    finishedAt: null,
+  };
+
+  game.roomId = `game:${game.id}`;
+  game.inviteUrl = `${appConfig.appUrl}/play/${game.id}`;
+  return game;
+}
+
+function activateQuickplayGame(game: PersistedGame, firstPlayerId: string, secondPlayerId: string) {
+  const timestamp = now();
+  const preset = getPresetById(game.presetId);
+  const [playerXId, playerOId] = pickSeatOrder(firstPlayerId, secondPlayerId);
+  const starterMark = createRandomStarter() as PlayerMark;
+  const starterId = starterMark === "X" ? playerXId : playerOId;
+
+  game.status = "active";
+  game.mode = "quickplay";
+  game.rated = true;
+  game.playerXId = playerXId;
+  game.playerOId = playerOId;
+  game.starterId = starterId;
+  game.currentTurnId = starterId;
+  game.winnerId = null;
+  game.challengeId = null;
+  game.disconnectPlayerId = null;
+  game.disconnectExpiresAt = null;
+  game.playerXLastSeenAt = timestamp;
+  game.playerOLastSeenAt = timestamp;
+  game.initialMs = preset.initialMs;
+  game.incrementMs = preset.incrementMs;
+  game.playerXRemainingMs = preset.initialMs;
+  game.playerORemainingMs = preset.initialMs;
+  game.turnStartedAt = timestamp;
+  game.state = createInitialGameState(starterMark);
+  game.updatedAt = timestamp;
+  game.finishedAt = null;
+  game.statsFinalized = false;
+}
+
 function createClockState(game: PersistedGame, at = now()): GameClockState {
   let playerXRemainingMs = game.playerXRemainingMs;
   let playerORemainingMs = game.playerORemainingMs;
@@ -270,7 +378,7 @@ function resolveClockExpiry(game: PersistedGame, at = now()) {
 }
 
 function resolveDisconnectState(game: PersistedGame, at = now()) {
-  if (game.status !== "active" || !game.playerXId || !game.playerOId) {
+  if (game.status !== "active" || !game.playerXId || !game.playerOId || isBotGame(game)) {
     game.disconnectPlayerId = null;
     game.disconnectExpiresAt = null;
     return;
@@ -369,6 +477,36 @@ function buildGameAggregate(game: PersistedGame, moves: PersistedMove[], users: 
   };
 }
 
+function buildQuickplayState(params?: {
+  game?: PersistedGame | null;
+  aggregate?: GameAggregate | null;
+}): QuickplayState {
+  if (!params?.game) {
+    return {
+      status: "idle",
+      preset: null,
+      queuedAt: null,
+      game: null,
+    };
+  }
+
+  if (params.game.status === "active") {
+    return {
+      status: "matched",
+      preset: getPresetSummary(params.game.presetId),
+      queuedAt: params.game.createdAt.toISOString(),
+      game: params.aggregate ?? null,
+    };
+  }
+
+  return {
+    status: "searching",
+    preset: getPresetSummary(params.game.presetId),
+    queuedAt: params.game.createdAt.toISOString(),
+    game: null,
+  };
+}
+
 async function getUserMap(ids: Array<string | null | undefined>) {
   const uniqueIds = Array.from(new Set(ids.filter(Boolean) as string[]));
   if (!uniqueIds.length) {
@@ -380,7 +518,15 @@ async function getUserMap(ids: Array<string | null | undefined>) {
     where: inArray(profilesTable.id, uniqueIds),
   });
 
-  return new Map(rows.map((row) => [row.id, rowToProfile(row)]));
+  const users = new Map(rows.map((row) => [row.id, rowToProfile(row)]));
+  for (const id of uniqueIds) {
+    const bot = getBuiltInBot(id);
+    if (bot) {
+      users.set(id, bot);
+    }
+  }
+
+  return users;
 }
 
 async function loadGameById(gameId: string) {
@@ -389,6 +535,261 @@ async function loadGameById(gameId: string) {
     where: eq(gamesTable.id, gameId),
   });
   return row ? rowToGame(row) : null;
+}
+
+async function insertGame(db: ReturnType<typeof requireDb>, game: PersistedGame) {
+  await db.insert(gamesTable).values({
+    id: game.id,
+    roomId: game.roomId,
+    inviteUrl: game.inviteUrl,
+    mode: game.mode,
+    status: game.status,
+    rated: game.rated ? 1 : 0,
+    presetId: game.presetId,
+    creatorId: game.creatorId,
+    playerXId: game.playerXId,
+    playerOId: game.playerOId,
+    starterId: game.starterId,
+    currentTurnId: game.currentTurnId,
+    winnerId: game.winnerId,
+    challengeId: game.challengeId,
+    disconnectPlayerId: game.disconnectPlayerId,
+    disconnectExpiresAt: game.disconnectExpiresAt,
+    playerXLastSeenAt: game.playerXLastSeenAt,
+    playerOLastSeenAt: game.playerOLastSeenAt,
+    initialMs: game.initialMs,
+    incrementMs: game.incrementMs,
+    playerXRemainingMs: game.playerXRemainingMs,
+    playerORemainingMs: game.playerORemainingMs,
+    turnStartedAt: game.turnStartedAt,
+    currentStateJson: game.state,
+    statsFinalized: game.statsFinalized ? 1 : 0,
+    createdAt: game.createdAt,
+    updatedAt: game.updatedAt,
+    finishedAt: game.finishedAt,
+  });
+}
+
+async function deleteGameById(gameId: string) {
+  await requireDb().delete(gamesTable).where(eq(gamesTable.id, gameId));
+}
+
+async function getPendingQuickplayForUser(userId: string) {
+  const row = await requireDb().query.gamesTable.findFirst({
+    where: and(
+      eq(gamesTable.mode, "quickplay"),
+      eq(gamesTable.status, "pending"),
+      or(eq(gamesTable.playerXId, userId), eq(gamesTable.playerOId, userId), eq(gamesTable.creatorId, userId)),
+    ),
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+
+  return row ? rowToGame(row) : null;
+}
+
+async function listQuickplayCandidates(userId: string, presetId: TimePresetId) {
+  const rows = await requireDb().query.gamesTable.findMany({
+    where: and(
+      eq(gamesTable.mode, "quickplay"),
+      eq(gamesTable.status, "pending"),
+      eq(gamesTable.presetId, presetId),
+    ),
+    orderBy: (table, { asc }) => [asc(table.createdAt)],
+  });
+
+  return rows
+    .map(rowToGame)
+    .filter((game) => ![game.playerXId, game.playerOId, game.creatorId].includes(userId));
+}
+
+async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3TMove) {
+  if (game.status !== "active") {
+    throw new AppError("This game is not accepting moves.", 409);
+  }
+
+  const playerMark = getCurrentPlayerMark(game, playerId);
+  if (!playerMark) {
+    throw new AppError("You are not seated in this game.", 403);
+  }
+
+  if (!isLegalMove(game.state, move)) {
+    throw new AppError("That move is not legal right now.", 422);
+  }
+
+  const db = requireDb();
+  const beforeClock = createClockState(game);
+  game.playerXRemainingMs = beforeClock.playerXRemainingMs;
+  game.playerORemainingMs = beforeClock.playerORemainingMs;
+
+  if (playerMark === "X") {
+    game.playerXRemainingMs = Math.max(0, game.playerXRemainingMs + game.incrementMs);
+  } else {
+    game.playerORemainingMs = Math.max(0, game.playerORemainingMs + game.incrementMs);
+  }
+
+  const updatedAt = now();
+  const nextState = applyMoveToState(game.state, move, playerMark);
+  game.state = nextState;
+  game.updatedAt = updatedAt;
+  game.playerXLastSeenAt = playerMark === "X" ? updatedAt : game.playerXLastSeenAt;
+  game.playerOLastSeenAt = playerMark === "O" ? updatedAt : game.playerOLastSeenAt;
+
+  const existingMoves = await loadMovesForGame(game.id);
+  const recordedMove: PersistedMove = {
+    id: randomId("move"),
+    gameId: game.id,
+    moveNumber: existingMoves.length + 1,
+    playerId,
+    move,
+    resultingState: nextState,
+    createdAt: updatedAt,
+  };
+
+  if (nextState.outcome === "active") {
+    const nextMark = oppositeMark(playerMark);
+    game.currentTurnId = markToUserId(game, nextMark);
+    game.turnStartedAt = updatedAt;
+    game.winnerId = null;
+    game.disconnectPlayerId = null;
+    game.disconnectExpiresAt = null;
+  } else {
+    game.status = "finished";
+    game.currentTurnId = null;
+    game.turnStartedAt = null;
+    game.finishedAt = updatedAt;
+    game.winnerId = nextState.winner ? markToUserId(game, nextState.winner) : null;
+  }
+
+  await db.transaction(async (tx) => {
+    await tx.insert(movesTable).values({
+      id: recordedMove.id,
+      gameId: recordedMove.gameId,
+      moveNumber: recordedMove.moveNumber,
+      playerId: recordedMove.playerId,
+      moveJson: recordedMove.move,
+      resultingStateJson: recordedMove.resultingState,
+      createdAt: recordedMove.createdAt,
+    });
+
+    await tx.update(gamesTable).set({
+      status: game.status,
+      currentTurnId: game.currentTurnId,
+      winnerId: game.winnerId,
+      disconnectPlayerId: game.disconnectPlayerId,
+      disconnectExpiresAt: game.disconnectExpiresAt,
+      playerXLastSeenAt: game.playerXLastSeenAt,
+      playerOLastSeenAt: game.playerOLastSeenAt,
+      playerXRemainingMs: game.playerXRemainingMs,
+      playerORemainingMs: game.playerORemainingMs,
+      turnStartedAt: game.turnStartedAt,
+      currentStateJson: game.state,
+      statsFinalized: game.statsFinalized ? 1 : 0,
+      updatedAt: game.updatedAt,
+      finishedAt: game.finishedAt,
+    }).where(eq(gamesTable.id, game.id));
+  });
+
+  if (game.status !== "active") {
+    await persistStats(game);
+  }
+
+  return recordedMove;
+}
+
+async function maybePlayBotTurn(game: PersistedGame) {
+  if (game.status !== "active" || !game.currentTurnId || !isAutomatedPlayerId(game.currentTurnId)) {
+    return false;
+  }
+
+  if (resolveClockExpiry(game)) {
+    await saveGame(requireDb(), game);
+    await persistStats(game);
+    return true;
+  }
+
+  if (!game.turnStartedAt) {
+    return false;
+  }
+
+  const rating = await resolveQuickplayRating(game.currentTurnId);
+  const thinkDeadline = game.turnStartedAt.getTime() + getBotThinkTimeMs({
+    gameId: game.id,
+    moveCount: game.state.moveCount,
+    rating,
+  });
+
+  if (thinkDeadline > now().getTime()) {
+    return false;
+  }
+
+  const move = chooseBotMove({
+    state: game.state,
+    rating,
+    seed: `${game.id}:${game.state.moveCount}:${game.currentTurnId}`,
+  });
+
+  await applyRecordedMove(game, game.currentTurnId, move);
+  return true;
+}
+
+async function syncQuickplayState(viewerId: string) {
+  const activeGame = await findActiveGameForUser(viewerId);
+  if (activeGame) {
+    if (activeGame.mode !== "quickplay") {
+      return buildQuickplayState();
+    }
+
+    if (await maybePlayBotTurn(activeGame)) {
+      resolveDisconnectState(activeGame);
+      await saveGame(requireDb(), activeGame);
+    }
+
+    const users = await getUserMap([activeGame.playerXId, activeGame.playerOId]);
+    const aggregate = buildGameAggregate(activeGame, await loadMovesForGame(activeGame.id), users);
+    return buildQuickplayState({ game: activeGame, aggregate });
+  }
+
+  const pending = await getPendingQuickplayForUser(viewerId);
+  if (!pending) {
+    return buildQuickplayState();
+  }
+
+  const viewerRating = await resolveQuickplayRating(viewerId);
+  const candidates = await listQuickplayCandidates(viewerId, pending.presetId);
+
+  let bestCandidate: PersistedGame | null = null;
+  let bestGap = Number.POSITIVE_INFINITY;
+
+  for (const candidate of candidates) {
+    const gap = Math.abs((await resolveQuickplayRating(candidate.creatorId)) - viewerRating);
+    if (gap < bestGap || (gap === bestGap && (!bestCandidate || candidate.createdAt < bestCandidate.createdAt))) {
+      bestGap = gap;
+      bestCandidate = candidate;
+    }
+  }
+
+  if (bestCandidate) {
+    const host = bestCandidate.createdAt.getTime() <= pending.createdAt.getTime() ? bestCandidate : pending;
+    const guest = host.id === pending.id ? bestCandidate : pending;
+    activateQuickplayGame(host, host.creatorId, guest.creatorId);
+    await saveGame(requireDb(), host);
+    await deleteGameById(guest.id);
+    const users = await getUserMap([host.playerXId, host.playerOId]);
+    const aggregate = buildGameAggregate(host, await loadMovesForGame(host.id), users);
+    return buildQuickplayState({ game: host, aggregate });
+  }
+
+  const botDelayMs = getQuickplayBotDelayMs(pending.id);
+  if (pending.createdAt.getTime() + botDelayMs <= now().getTime()) {
+    const bot = pickBotForRating(viewerRating);
+    activateQuickplayGame(pending, viewerId, bot.id);
+    await saveGame(requireDb(), pending);
+    const users = await getUserMap([pending.playerXId, pending.playerOId]);
+    const aggregate = buildGameAggregate(pending, await loadMovesForGame(pending.id), users);
+    return buildQuickplayState({ game: pending, aggregate });
+  }
+
+  return buildQuickplayState({ game: pending });
 }
 
 async function loadMovesForGame(gameId: string) {
@@ -454,7 +855,7 @@ async function findActiveGameForUser(userId: string) {
   return row ? rowToGame(row) : null;
 }
 
-async function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string }) {
+async function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string }) {
   if (await findActiveGameForUser(userId)) {
     throw new AppError("Finish your current game before starting another one.", 409);
   }
@@ -469,6 +870,11 @@ async function assertNoLiveCommitments(userId: string, options?: { ignoreChallen
 
   if (pending && pending.id !== options?.ignoreChallengeId) {
     throw new AppError("Resolve your current challenge before starting another one.", 409);
+  }
+
+  const quickplay = await getPendingQuickplayForUser(userId);
+  if (quickplay && quickplay.id !== options?.ignoreQuickplayGameId) {
+    throw new AppError("Finish finding your current game before starting another one.", 409);
   }
 }
 
@@ -592,41 +998,78 @@ async function persistStats(game: PersistedGame) {
       .from(profilesTable)
       .where(inArray(profilesTable.id, [playerXId, playerOId]));
 
-    const playerX = rows.find((row) => row.id === playerXId);
-    const playerO = rows.find((row) => row.id === playerOId);
-
-    if (!playerX || !playerO) {
-      throw new AppError("Could not finalize game stats.", 500);
-    }
-
-    const updatedX = { ...playerX };
-    const updatedO = { ...playerO };
+    const playerX = rows.find((row) => row.id === playerXId) ?? null;
+    const playerO = rows.find((row) => row.id === playerOId) ?? null;
+    const updatedX = playerX ? { ...playerX } : null;
+    const updatedO = playerO ? { ...playerO } : null;
     const isDraw = !game.winnerId;
 
     if (isDraw) {
-      updatedX.draws += 1;
-      updatedO.draws += 1;
+      if (updatedX) {
+        updatedX.draws += 1;
+      }
+      if (updatedO) {
+        updatedO.draws += 1;
+      }
     } else if (game.winnerId === playerXId) {
-      updatedX.wins += 1;
-      updatedO.losses += 1;
+      if (updatedX) {
+        updatedX.wins += 1;
+      }
+      if (updatedO) {
+        updatedO.losses += 1;
+      }
     } else if (game.winnerId === playerOId) {
-      updatedO.wins += 1;
-      updatedX.losses += 1;
+      if (updatedO) {
+        updatedO.wins += 1;
+      }
+      if (updatedX) {
+        updatedX.losses += 1;
+      }
     }
 
-    await tx.update(profilesTable).set({
-      wins: updatedX.wins,
-      losses: updatedX.losses,
-      draws: updatedX.draws,
-      updatedAt: now(),
-    }).where(eq(profilesTable.id, updatedX.id));
+    if (game.mode === "quickplay" && game.rated) {
+      const expectedScore = (rating: number, opponentRating: number) =>
+        1 / (1 + 10 ** ((opponentRating - rating) / 400));
 
-    await tx.update(profilesTable).set({
-      wins: updatedO.wins,
-      losses: updatedO.losses,
-      draws: updatedO.draws,
-      updatedAt: now(),
-    }).where(eq(profilesTable.id, updatedO.id));
+      const xRating = updatedX?.quickplayRating ?? getStaticRatingForUser(playerXId) ?? 1200;
+      const oRating = updatedO?.quickplayRating ?? getStaticRatingForUser(playerOId) ?? 1200;
+      const xScore = isDraw ? 0.5 : game.winnerId === playerXId ? 1 : 0;
+      const oScore = 1 - xScore;
+      const xDelta = Math.round(24 * (xScore - expectedScore(xRating, oRating)));
+      const oDelta = Math.round(24 * (oScore - expectedScore(oRating, xRating)));
+
+      if (updatedX) {
+        updatedX.quickplayGamesPlayed += 1;
+        updatedX.quickplayRating = Math.max(300, updatedX.quickplayRating + xDelta);
+      }
+
+      if (updatedO) {
+        updatedO.quickplayGamesPlayed += 1;
+        updatedO.quickplayRating = Math.max(300, updatedO.quickplayRating + oDelta);
+      }
+    }
+
+    if (updatedX) {
+      await tx.update(profilesTable).set({
+        wins: updatedX.wins,
+        losses: updatedX.losses,
+        draws: updatedX.draws,
+        quickplayRating: updatedX.quickplayRating,
+        quickplayGamesPlayed: updatedX.quickplayGamesPlayed,
+        updatedAt: now(),
+      }).where(eq(profilesTable.id, updatedX.id));
+    }
+
+    if (updatedO) {
+      await tx.update(profilesTable).set({
+        wins: updatedO.wins,
+        losses: updatedO.losses,
+        draws: updatedO.draws,
+        quickplayRating: updatedO.quickplayRating,
+        quickplayGamesPlayed: updatedO.quickplayGamesPlayed,
+        updatedAt: now(),
+      }).where(eq(profilesTable.id, updatedO.id));
+    }
 
     statsApplied = true;
   });
@@ -673,6 +1116,7 @@ export async function ensureViewerUser(viewer: AppViewer) {
 export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
   await ensureViewerUser(viewer);
   await expireChallenges();
+  const quickplay = await syncQuickplayState(viewer.id);
 
   const activeGame = await findActiveGameForUser(viewer.id);
   let activeAggregate: GameAggregate | null = null;
@@ -682,6 +1126,7 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
     if (resolveClockExpiry(activeGame)) {
       await persistStats(activeGame);
     }
+    await maybePlayBotTurn(activeGame);
     resolveDisconnectState(activeGame);
     const changed = beforeSignature !== getRuntimeSignature(activeGame);
     if (changed) {
@@ -695,10 +1140,73 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
   return {
     viewer,
     activeGame: activeAggregate,
+    quickplay: activeGame?.mode === "quickplay"
+      ? buildQuickplayState({
+          game: activeGame,
+          aggregate: activeAggregate,
+        })
+      : quickplay,
     incomingChallenges: await listChallengesForUser(viewer.id, "incoming"),
     outgoingChallenges: await listChallengesForUser(viewer.id, "outgoing"),
     presets: PRESETS,
   };
+}
+
+export async function getQuickplayStatus(viewer: AppViewer) {
+  await ensureViewerUser(viewer);
+  return syncQuickplayState(viewer.id);
+}
+
+export async function joinQuickplay(viewer: AppViewer, presetId: TimePresetId) {
+  await ensureViewerUser(viewer);
+  await expireChallenges();
+
+  const activeGame = await findActiveGameForUser(viewer.id);
+  if (activeGame) {
+    if (activeGame.mode !== "quickplay") {
+      throw new AppError("Finish your current game before starting another one.", 409);
+    }
+
+    const users = await getUserMap([activeGame.playerXId, activeGame.playerOId]);
+    const aggregate = buildGameAggregate(activeGame, await loadMovesForGame(activeGame.id), users);
+    return buildQuickplayState({ game: activeGame, aggregate });
+  }
+
+  const existingPending = await getPendingQuickplayForUser(viewer.id);
+  if (existingPending && existingPending.presetId !== presetId) {
+    await deleteGameById(existingPending.id);
+  }
+
+  await assertNoLiveCommitments(viewer.id, { ignoreQuickplayGameId: existingPending?.id });
+
+  const refreshedPending = await getPendingQuickplayForUser(viewer.id);
+  if (refreshedPending) {
+    return syncQuickplayState(viewer.id);
+  }
+
+  const candidates = await listQuickplayCandidates(viewer.id, presetId);
+  if (candidates[0]) {
+    activateQuickplayGame(candidates[0], candidates[0].creatorId, viewer.id);
+    await saveGame(requireDb(), candidates[0]);
+    const users = await getUserMap([candidates[0].playerXId, candidates[0].playerOId]);
+    const aggregate = buildGameAggregate(candidates[0], await loadMovesForGame(candidates[0].id), users);
+    return buildQuickplayState({ game: candidates[0], aggregate });
+  }
+
+  const ticket = createPendingQuickplayGame(viewer.id, presetId);
+  await insertGame(requireDb(), ticket);
+  return buildQuickplayState({ game: ticket });
+}
+
+export async function leaveQuickplay(viewer: AppViewer) {
+  await ensureViewerUser(viewer);
+
+  const ticket = await getPendingQuickplayForUser(viewer.id);
+  if (ticket) {
+    await deleteGameById(ticket.id);
+  }
+
+  return buildQuickplayState();
 }
 
 export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
@@ -876,6 +1384,7 @@ export async function getGameAggregate(viewer: AppViewer, gameId: string) {
   if (resolveClockExpiry(game)) {
     await persistStats(game);
   }
+  await maybePlayBotTurn(game);
   resolveDisconnectState(game);
   const changed = beforeSignature !== getRuntimeSignature(game);
   if (changed) {
@@ -889,7 +1398,6 @@ export async function getGameAggregate(viewer: AppViewer, gameId: string) {
 
 export async function playMove(viewer: AppViewer, gameId: string, move: D3TMove) {
   await ensureViewerUser(viewer);
-  const db = requireDb();
   const game = await loadGameById(gameId);
 
   if (!game) {
@@ -899,100 +1407,17 @@ export async function playMove(viewer: AppViewer, gameId: string, move: D3TMove)
     throw new AppError("This game is not accepting moves.", 409);
   }
   if (resolveClockExpiry(game)) {
-    await saveGame(db, game);
+    await saveGame(requireDb(), game);
     await persistStats(game);
     throw new AppError("Your clock has already expired.", 409);
   }
   if (game.currentTurnId !== viewer.id) {
     throw new AppError("It is not your turn.", 409);
   }
-
-  const playerMark = getCurrentPlayerMark(game, viewer.id);
-  if (!playerMark) {
-    throw new AppError("You are not seated in this game.", 403);
-  }
-  if (!isLegalMove(game.state, move)) {
-    throw new AppError("That move is not legal right now.", 422);
-  }
-
-  const beforeClock = createClockState(game);
-  game.playerXRemainingMs = beforeClock.playerXRemainingMs;
-  game.playerORemainingMs = beforeClock.playerORemainingMs;
-
-  if (playerMark === "X") {
-    game.playerXRemainingMs = Math.max(0, game.playerXRemainingMs + game.incrementMs);
-  } else {
-    game.playerORemainingMs = Math.max(0, game.playerORemainingMs + game.incrementMs);
-  }
-
-  const updatedAt = now();
-  const nextState = applyMoveToState(game.state, move, playerMark);
-  game.state = nextState;
-  game.updatedAt = updatedAt;
-  game.playerXLastSeenAt = playerMark === "X" ? updatedAt : game.playerXLastSeenAt;
-  game.playerOLastSeenAt = playerMark === "O" ? updatedAt : game.playerOLastSeenAt;
-
-  const existingMoves = await loadMovesForGame(game.id);
-  const recordedMove: PersistedMove = {
-    id: randomId("move"),
-    gameId: game.id,
-    moveNumber: existingMoves.length + 1,
-    playerId: viewer.id,
-    move,
-    resultingState: nextState,
-    createdAt: updatedAt,
-  };
-
-  if (nextState.outcome === "active") {
-    const nextMark = oppositeMark(playerMark);
-    game.currentTurnId = markToUserId(game, nextMark);
-    game.turnStartedAt = updatedAt;
-    game.winnerId = null;
-    game.disconnectPlayerId = null;
-    game.disconnectExpiresAt = null;
-  } else {
-    game.status = "finished";
-    game.currentTurnId = null;
-    game.turnStartedAt = null;
-    game.finishedAt = updatedAt;
-    game.winnerId = nextState.winner ? markToUserId(game, nextState.winner) : null;
-  }
-
-  await db.transaction(async (tx) => {
-    await tx.insert(movesTable).values({
-      id: recordedMove.id,
-      gameId: recordedMove.gameId,
-      moveNumber: recordedMove.moveNumber,
-      playerId: recordedMove.playerId,
-      moveJson: recordedMove.move,
-      resultingStateJson: recordedMove.resultingState,
-      createdAt: recordedMove.createdAt,
-    });
-
-    await tx.update(gamesTable).set({
-      status: game.status,
-      currentTurnId: game.currentTurnId,
-      winnerId: game.winnerId,
-      disconnectPlayerId: game.disconnectPlayerId,
-      disconnectExpiresAt: game.disconnectExpiresAt,
-      playerXLastSeenAt: game.playerXLastSeenAt,
-      playerOLastSeenAt: game.playerOLastSeenAt,
-      playerXRemainingMs: game.playerXRemainingMs,
-      playerORemainingMs: game.playerORemainingMs,
-      turnStartedAt: game.turnStartedAt,
-      currentStateJson: game.state,
-      statsFinalized: game.statsFinalized ? 1 : 0,
-      updatedAt: game.updatedAt,
-      finishedAt: game.finishedAt,
-    }).where(eq(gamesTable.id, game.id));
-  });
-
-  if (game.status !== "active") {
-    await persistStats(game);
-  }
+  await applyRecordedMove(game, viewer.id, move);
 
   const users = await getUserMap([game.playerXId, game.playerOId]);
-  return buildGameAggregate(game, [...existingMoves, recordedMove], users);
+  return buildGameAggregate(game, await loadMovesForGame(game.id), users);
 }
 
 export async function resignGame(viewer: AppViewer, gameId: string) {
