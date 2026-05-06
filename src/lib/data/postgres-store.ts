@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 
 import type { AppViewer } from "@/lib/auth/session";
 import { appConfig } from "@/lib/config";
@@ -617,6 +617,7 @@ async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3
   }
 
   const db = requireDb();
+  const previousTurnStartedAt = game.turnStartedAt;
   const beforeClock = createClockState(game);
   game.playerXRemainingMs = beforeClock.playerXRemainingMs;
   game.playerORemainingMs = beforeClock.playerORemainingMs;
@@ -634,11 +635,10 @@ async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3
   game.playerXLastSeenAt = playerMark === "X" ? updatedAt : game.playerXLastSeenAt;
   game.playerOLastSeenAt = playerMark === "O" ? updatedAt : game.playerOLastSeenAt;
 
-  const existingMoves = await loadMovesForGame(game.id);
   const recordedMove: PersistedMove = {
     id: randomId("move"),
     gameId: game.id,
-    moveNumber: existingMoves.length + 1,
+    moveNumber: nextState.moveCount,
     playerId,
     move,
     resultingState: nextState,
@@ -661,6 +661,38 @@ async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3
   }
 
   await db.transaction(async (tx) => {
+    const claimed = await tx
+      .update(gamesTable)
+      .set({
+        status: game.status,
+        currentTurnId: game.currentTurnId,
+        winnerId: game.winnerId,
+        disconnectPlayerId: game.disconnectPlayerId,
+        disconnectExpiresAt: game.disconnectExpiresAt,
+        playerXLastSeenAt: game.playerXLastSeenAt,
+        playerOLastSeenAt: game.playerOLastSeenAt,
+        playerXRemainingMs: game.playerXRemainingMs,
+        playerORemainingMs: game.playerORemainingMs,
+        turnStartedAt: game.turnStartedAt,
+        currentStateJson: game.state,
+        statsFinalized: game.statsFinalized ? 1 : 0,
+        updatedAt: game.updatedAt,
+        finishedAt: game.finishedAt,
+      })
+      .where(
+        and(
+          eq(gamesTable.id, game.id),
+          eq(gamesTable.status, "active"),
+          eq(gamesTable.currentTurnId, playerId),
+          previousTurnStartedAt ? eq(gamesTable.turnStartedAt, previousTurnStartedAt) : isNull(gamesTable.turnStartedAt),
+        ),
+      )
+      .returning({ id: gamesTable.id });
+
+    if (claimed.length === 0) {
+      throw new AppError("This game changed before your move was saved. Refresh and try again.", 409);
+    }
+
     await tx.insert(movesTable).values({
       id: recordedMove.id,
       gameId: recordedMove.gameId,
@@ -670,23 +702,6 @@ async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3
       resultingStateJson: recordedMove.resultingState,
       createdAt: recordedMove.createdAt,
     });
-
-    await tx.update(gamesTable).set({
-      status: game.status,
-      currentTurnId: game.currentTurnId,
-      winnerId: game.winnerId,
-      disconnectPlayerId: game.disconnectPlayerId,
-      disconnectExpiresAt: game.disconnectExpiresAt,
-      playerXLastSeenAt: game.playerXLastSeenAt,
-      playerOLastSeenAt: game.playerOLastSeenAt,
-      playerXRemainingMs: game.playerXRemainingMs,
-      playerORemainingMs: game.playerORemainingMs,
-      turnStartedAt: game.turnStartedAt,
-      currentStateJson: game.state,
-      statsFinalized: game.statsFinalized ? 1 : 0,
-      updatedAt: game.updatedAt,
-      finishedAt: game.finishedAt,
-    }).where(eq(gamesTable.id, game.id));
   });
 
   if (game.status !== "active") {
