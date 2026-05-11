@@ -37,7 +37,7 @@ export function SiteHeaderChallenge({ disabled }: { disabled?: boolean }) {
   }
 
   return (
-    <div className="flex min-w-0 max-w-[min(72vw,580px)] flex-1 items-center gap-2 rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.84)] p-2 shadow-[0_16px_40px_rgba(90,66,44,0.1)] backdrop-blur-md">
+    <div className="flex min-w-0 max-w-[min(58vw,560px)] flex-1 items-center gap-2 rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.84)] p-2 shadow-[0_16px_40px_rgba(90,66,44,0.1)] backdrop-blur-md">
       <select
         value={presetId}
         disabled={disabled || pending}

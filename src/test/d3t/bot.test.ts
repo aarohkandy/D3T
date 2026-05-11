@@ -37,6 +37,36 @@ test("bot takes an immediate winning leaf when it has one", () => {
   assert.deepEqual(move, { t1: 1, t2: 1, t3: 3 });
 });
 
+test("bot takes an immediate winning leaf even at low rating", () => {
+  const raw = createInitialGameState("X");
+  raw.nextForced = null;
+  raw.board.boards[0].boards[0].cells = ["X", "X", null, null, "O", null, null, null, "O"];
+  const state = recomputeGameState(raw);
+
+  const move = chooseBotMove({
+    state,
+    rating: 900,
+    seed: "finish-low-rating",
+  });
+
+  assert.deepEqual(move, { t1: 1, t2: 1, t3: 3 });
+});
+
+test("bot blocks an immediate winning leaf when it cannot win first", () => {
+  const raw = createInitialGameState("X");
+  raw.nextForced = { t1: 1, t2: 1 };
+  raw.board.boards[0].boards[0].cells = ["O", "O", null, null, "X", null, null, null, null];
+  const state = recomputeGameState(raw);
+
+  const move = chooseBotMove({
+    state,
+    rating: 900,
+    seed: "block-low-rating",
+  });
+
+  assert.deepEqual(move, { t1: 1, t2: 1, t3: 3 });
+});
+
 test("bot converts a forced-board win into a middle-board win", () => {
   const raw = createInitialGameState("X");
   raw.nextForced = { t1: 2, t2: 2 };

@@ -333,19 +333,8 @@ export function PlayHub({
               <p className="max-w-[440px] text-xl leading-8 text-[color:var(--color-ink-soft)]">
                 Grandfather Tic-Tac-Toe with three nested boards, forced replies, and live head-to-head games.
               </p>
-              <div className="flex flex-wrap gap-3">
-                <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
-                  Friend challenges
-                </span>
-                <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
-                  Live clocks
-                </span>
-                <span className="rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.8)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)]">
-                  Challenges first
-                </span>
-              </div>
               <p className="max-w-[460px] text-sm leading-7 text-[color:var(--color-ink-muted)]">
-                Create an account, choose a username, and start with direct friend challenges.
+                Create an account, pick a clock, and challenge a friend by username.
               </p>
             </div>
 

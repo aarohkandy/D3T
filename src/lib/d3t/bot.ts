@@ -2,6 +2,7 @@ import {
   applyMoveToState,
   generateLegalMoves,
   getForcedBoard,
+  oppositeMark,
   type D3TGameState,
   type D3TMark,
   type D3TMove,
@@ -260,6 +261,83 @@ function scoreMoveHeuristic(state: D3TGameState, move: D3TMove, rootMark: D3TMar
   return score;
 }
 
+function lineWinner(values: readonly (D3TMark | null)[]) {
+  for (const [a, b, c] of TOP_LINES) {
+    const first = values[a];
+    if (first && first === values[b] && first === values[c]) {
+      return first;
+    }
+  }
+
+  return null;
+}
+
+function scoreImmediateTactic(state: D3TGameState, move: D3TMove, mark: D3TMark) {
+  const middle = state.board.boards[move.t1 - 1];
+  const leaf = middle.boards[move.t2 - 1];
+
+  if (leaf.status !== "open" || leaf.cells[move.t3 - 1] !== null) {
+    return 0;
+  }
+
+  const leafCells = [...leaf.cells];
+  leafCells[move.t3 - 1] = mark;
+  const leafWinner = lineWinner(leafCells);
+
+  if (leafWinner !== mark) {
+    return 0;
+  }
+
+  let score = 100_000;
+  const middleOwners = middle.boards.map((child) => (child.status === "won" ? child.winner : null));
+  middleOwners[move.t2 - 1] = mark;
+
+  if (lineWinner(middleOwners) !== mark) {
+    return score;
+  }
+
+  score = 500_000;
+  const topOwners = [...state.topBoardOwners];
+  topOwners[move.t1 - 1] = mark;
+
+  if (lineWinner(topOwners) === mark) {
+    score = 1_000_000;
+  }
+
+  return score;
+}
+
+function pickTacticalMove(state: D3TGameState, legalMoves: D3TMove[]) {
+  const ownWins = legalMoves
+    .map((move) => ({
+      move,
+      score: scoreImmediateTactic(state, move, state.turn),
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((left, right) =>
+      right.score - left.score ||
+      scoreMoveHeuristic(state, right.move, state.turn) - scoreMoveHeuristic(state, left.move, state.turn)
+    );
+
+  if (ownWins.length > 0) {
+    return ownWins[0].move;
+  }
+
+  const enemy = oppositeMark(state.turn);
+  const blocks = legalMoves
+    .map((move) => ({
+      move,
+      score: scoreImmediateTactic(state, move, enemy),
+    }))
+    .filter(({ score }) => score > 0)
+    .sort((left, right) =>
+      right.score - left.score ||
+      scoreMoveHeuristic(state, right.move, state.turn) - scoreMoveHeuristic(state, left.move, state.turn)
+    );
+
+  return blocks[0]?.move ?? null;
+}
+
 function orderMoves(
   state: D3TGameState,
   moves: D3TMove[],
@@ -384,6 +462,11 @@ export function chooseBotMove({
   const legalMoves = generateLegalMoves(state);
   if (!legalMoves.length) {
     throw new Error("No legal moves available for the bot.");
+  }
+
+  const tacticalMove = pickTacticalMove(state, legalMoves);
+  if (tacticalMove) {
+    return tacticalMove;
   }
 
   const skill = getSkillProfile(rating, state);

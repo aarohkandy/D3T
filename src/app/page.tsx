@@ -1,7 +1,8 @@
+import { redirect } from "next/navigation";
+
 import { getViewer } from "@/lib/auth/session";
 import { getDashboardData } from "@/lib/data/store";
 
-import { GameRoomClient } from "@/components/game/game-room-client";
 import { PlayHub } from "@/components/play-hub";
 
 export default async function Home() {
@@ -9,7 +10,7 @@ export default async function Home() {
   const hub = viewer ? await getDashboardData(viewer) : null;
 
   if (viewer && hub?.activeGame) {
-    return <GameRoomClient initialGame={hub.activeGame} viewer={viewer} />;
+    redirect(`/play/${hub.activeGame.id}`);
   }
 
   return <PlayHub viewer={viewer} initialHub={hub} />;

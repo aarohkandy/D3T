@@ -19,28 +19,37 @@ export function LocalAuthForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [submitting, setSubmitting] = useState(false);
+  const [quickStartUsername, setQuickStartUsername] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
 
   const isSignUp = mode === "sign-up";
+  const isBusy = pending || submitting;
 
   async function submitAuth(payload: Record<string, string>) {
-    const response = await fetch("/api/local-auth", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
+    setSubmitting(true);
+    try {
+      const response = await fetch("/api/local-auth", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(payload),
+      });
 
-    const result = await response.json();
-    if (!response.ok) {
-      toast.error(result.error ?? "Could not continue.");
-      return;
+      const result = await response.json();
+      if (!response.ok) {
+        toast.error(result.error ?? "Could not continue.");
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } finally {
+      setSubmitting(false);
+      setQuickStartUsername(null);
     }
-
-    router.push("/");
-    router.refresh();
   }
 
   return (
@@ -65,8 +74,8 @@ export function LocalAuthForm({
             className="space-y-5"
             onSubmit={(event) => {
               event.preventDefault();
-              startTransition(async () => {
-                await submitAuth(
+              startTransition(() => {
+                void submitAuth(
                   isSignUp
                     ? {
                         mode,
@@ -109,7 +118,7 @@ export function LocalAuthForm({
               <Button
                 type="submit"
                 size="lg"
-                disabled={pending || username.trim().length < 2}
+                disabled={isBusy || username.trim().length < 2}
               >
                 {isSignUp ? "Create Account" : "Log In"}
               </Button>
@@ -117,7 +126,7 @@ export function LocalAuthForm({
                 href={isSignUp ? "/sign-in" : "/sign-up"}
                 className="text-sm font-medium text-[color:var(--color-ink-soft)] underline underline-offset-4"
               >
-                {isSignUp ? "Already have a local account?" : "Need a local account?"}
+                {isSignUp ? "Log in instead" : "Create an account"}
               </Link>
             </div>
           </form>
@@ -136,23 +145,25 @@ export function LocalAuthForm({
               <button
                 key={viewer.id}
                 type="button"
-                disabled={pending}
+                aria-label={`Sign in as ${viewer.username}`}
+                disabled={isBusy}
                 onClick={() => {
-                  startTransition(async () => {
-                    await submitAuth({
+                  setQuickStartUsername(viewer.username);
+                  startTransition(() => {
+                    void submitAuth({
                       mode: "sign-in",
                       username: viewer.username,
                     });
                   });
                 }}
-                className="flex w-full items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.72)] px-4 py-3 text-left transition hover:border-[color:var(--color-line-strong)]"
+                className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.72)] px-4 py-3 text-left transition hover:border-[color:var(--color-line-strong)] hover:bg-[rgba(255,252,247,0.92)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span>
                   <span className="block text-sm font-semibold text-[color:var(--color-ink)]">{viewer.username}</span>
                   <span className="block text-xs text-[color:var(--color-ink-muted)]">@{viewer.username}</span>
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-ink-muted)]">
-                  Use
+                  {quickStartUsername === viewer.username ? "Signing in" : "Sign in"}
                 </span>
               </button>
             ))}

@@ -161,7 +161,7 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                 href={isSignUp ? "/sign-in" : "/sign-up"}
                 className="text-sm font-medium text-[color:var(--color-ink-soft)] underline underline-offset-4"
               >
-                {isSignUp ? "Already have an account?" : "Need an account?"}
+                {isSignUp ? "Log in instead" : "Create an account"}
               </Link>
             </div>
           </form>

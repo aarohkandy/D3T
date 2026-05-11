@@ -1,17 +1,15 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useState, useTransition } from "react";
+import { useEffect, useEffectEvent, useState, useTransition, type CSSProperties } from "react";
 import { toast } from "sonner";
 
 import type { AppViewer } from "@/lib/auth/session";
 import { getLegalMoves, type D3TMove } from "@/lib/d3t/engine";
 import type { GameAggregate } from "@/lib/data/types";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
+import { cn } from "@/lib/utils";
 
 import { GameBoard } from "@/components/game/game-board";
-import { MoveList } from "@/components/game/move-list";
-import { Button } from "@/components/ui/button";
 
 function formatClock(ms: number) {
   const totalSeconds = Math.max(0, Math.floor(ms / 1000));
@@ -19,14 +17,6 @@ function formatClock(ms: number) {
   const seconds = totalSeconds % 60;
 
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
-}
-
-function formatCountdown(ms: number) {
-  const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-
-  return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
 function projectRemaining(game: GameAggregate, nowMs: number, syncedAtMs: number, mark: "X" | "O") {
@@ -41,30 +31,56 @@ function projectRemaining(game: GameAggregate, nowMs: number, syncedAtMs: number
 }
 
 function PlayerPanel({
-  label,
+  mark,
   name,
+  relation,
   active,
   remainingMs,
-  compact = false,
+  initialMs,
 }: {
-  label: string;
+  mark: "X" | "O";
   name: string;
+  relation: string;
   active: boolean;
   remainingMs: number;
-  compact?: boolean;
+  initialMs: number;
 }) {
+  const expired = remainingMs <= 0;
+  const clockFill = Math.max(0, Math.min(100, (remainingMs / Math.max(1, initialMs)) * 100));
+  const critical = !expired && clockFill <= 12;
+  const low = !expired && clockFill <= 28;
+  const panelStyle = {
+    "--clock-fill": `${clockFill}%`,
+  } as CSSProperties;
+
   return (
-    <div className={compact
-      ? "flex items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[color:var(--color-panel)] px-4 py-3 shadow-[0_14px_34px_rgba(96,73,48,0.05)]"
-      : "flex items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[color:var(--color-panel)] px-5 py-4 shadow-[0_14px_34px_rgba(96,73,48,0.05)]"}>
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[color:var(--color-ink-muted)]">{label}</p>
-        <p className="mt-1 text-lg font-semibold text-[color:var(--color-ink)]">{name}</p>
+    <div
+      className={cn(
+        "d3t-player-card",
+        mark === "X" ? "is-x" : "is-o",
+        active && "is-active",
+        low && "is-low",
+        critical && "is-critical",
+        expired && "is-expired",
+      )}
+      style={panelStyle}
+    >
+      <div className="d3t-player-card__identity">
+        <div className="d3t-player-card__glyph" aria-hidden="true">
+          {mark}
+        </div>
+        <div className="d3t-player-card__copy">
+          <p className="d3t-player-card__name">{name}</p>
+          <p className="d3t-player-card__relation">
+            {expired ? "Flagged" : relation}
+          </p>
+        </div>
       </div>
-      <div className={active
-        ? "rounded-xl bg-[color:var(--color-accent)] px-4 py-3 font-mono text-2xl font-semibold text-[color:var(--color-ink-strong)]"
-        : "rounded-xl bg-[rgba(255,252,247,0.86)] px-4 py-3 font-mono text-2xl font-semibold text-[color:var(--color-ink)]"}>
-        {formatClock(remainingMs)}
+      <div className="d3t-player-card__readout">
+        <div className="d3t-clock">
+          <span>{formatClock(remainingMs)}</span>
+          <span className="d3t-clock__fuse" aria-hidden="true" />
+        </div>
       </div>
     </div>
   );
@@ -77,30 +93,26 @@ export function GameRoomClient({
   initialGame: GameAggregate;
   viewer: AppViewer;
 }) {
-  const router = useRouter();
   const initialSyncMs = Number.isNaN(Date.parse(initialGame.updatedAt)) ? 0 : Date.parse(initialGame.updatedAt);
   const [game, setGame] = useState(initialGame);
   const [syncedAtMs, setSyncedAtMs] = useState(initialSyncMs);
   const [nowMs, setNowMs] = useState(initialSyncMs);
   const [pending, startTransition] = useTransition();
-  const [showForcedTargetHint, setShowForcedTargetHint] = useState(!viewer.hasSeenForcedTargetHint);
 
   const viewerIsPlayer = [game.playerXId, game.playerOId].includes(viewer.id);
   const canPlay = game.status === "active" && game.currentTurnId === viewer.id;
   const legalMoves = canPlay ? getLegalMoves(game.state) : [];
-  const disconnectDeadlineMs = game.disconnectExpiresAt ? new Date(game.disconnectExpiresAt).getTime() : null;
-  const disconnectCountdownMs = disconnectDeadlineMs ? Math.max(0, disconnectDeadlineMs - nowMs) : null;
-  const opponentDisconnected = Boolean(
-    game.status === "active" && game.disconnectPlayerId && game.disconnectPlayerId !== viewer.id,
-  );
-  const canClaimForfeit = Boolean(opponentDisconnected && disconnectCountdownMs === 0);
 
   const refreshGame = useEffectEvent(async () => {
-    const response = await fetch(`/api/games/${game.id}`, { cache: "no-store" });
-    const payload = await response.json();
-    if (response.ok) {
-      setGame(payload.game);
-      setSyncedAtMs(Date.now());
+    try {
+      const response = await fetch(`/api/games/${game.id}`, { cache: "no-store" });
+      const payload = await response.json();
+      if (response.ok) {
+        setGame(payload.game);
+        setSyncedAtMs(Date.now());
+      }
+    } catch {
+      // Reloads and tab sleeps can cancel polling requests; the next poll will resync.
     }
   });
 
@@ -157,11 +169,15 @@ export function GameRoomClient({
     }
 
     const sendPresence = async () => {
-      const response = await fetch(`/api/games/${game.id}/presence`, { method: "POST" });
-      const payload = await response.json();
-      if (response.ok) {
-        setGame(payload.game);
-        setSyncedAtMs(Date.now());
+      try {
+        const response = await fetch(`/api/games/${game.id}/presence`, { method: "POST" });
+        const payload = await response.json();
+        if (response.ok) {
+          setGame(payload.game);
+          setSyncedAtMs(Date.now());
+        }
+      } catch {
+        // Presence gets refreshed frequently, so transient browser fetch failures are harmless.
       }
     };
 
@@ -199,34 +215,23 @@ export function GameRoomClient({
 
   const xRemainingMs = projectRemaining(game, nowMs, syncedAtMs, "X");
   const oRemainingMs = projectRemaining(game, nowMs, syncedAtMs, "O");
-
-  async function acknowledgeForcedTargetHint() {
-    setShowForcedTargetHint(false);
-    await fetch("/api/onboarding/forced-target", { method: "POST" });
-  }
+  const xRelation = game.playerXId === viewer.id ? "You" : "Opponent";
+  const oRelation = game.playerOId === viewer.id ? "You" : "Opponent";
 
   return (
-    <main className="flex h-[100svh] w-full items-start justify-center overflow-hidden px-4 pb-4 pt-[72px] sm:px-6 sm:pt-[76px]">
-      <div className="grid h-full w-full max-w-[1440px] gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <section className="flex min-h-0 flex-col gap-4">
+    <main className="d3t-play-screen flex h-[100svh] w-full items-center justify-center overflow-hidden px-2 py-2 sm:px-3">
+      <div className="d3t-play-screen__texture" aria-hidden="true" />
+      <section className="d3t-match-shell">
           <PlayerPanel
-            label="Top"
+            mark="O"
             name={game.playerO?.username ?? "Waiting..."}
+            relation={oRelation}
             active={game.currentTurnId === game.playerOId}
             remainingMs={oRemainingMs}
+            initialMs={game.clock.initialMs}
           />
 
-          <div className="min-h-0 flex-1 rounded-[28px] border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.54)] p-3 shadow-[0_18px_44px_rgba(96,73,48,0.06)]">
-            {showForcedTargetHint ? (
-              <div className="mb-3 flex items-center justify-between gap-3 rounded-2xl border border-[rgba(128,89,54,0.16)] bg-[rgba(255,248,239,0.92)] px-4 py-3 text-sm text-[color:var(--color-ink-soft)]">
-                <p>
-                  Your move sends your opponent to the board at <span className="font-semibold text-[color:var(--color-ink)]">(t2, t3)</span>. If that board is closed, they can play anywhere.
-                </p>
-                <Button variant="secondary" size="sm" onClick={acknowledgeForcedTargetHint}>
-                  Got it
-                </Button>
-              </div>
-            ) : null}
+          <div className="d3t-board-stage">
             <GameBoard
               state={game.state}
               legalMoves={legalMoves}
@@ -236,61 +241,14 @@ export function GameRoomClient({
           </div>
 
           <PlayerPanel
-            label="Bottom"
+            mark="X"
             name={game.playerX?.username ?? "Waiting..."}
+            relation={xRelation}
             active={game.currentTurnId === game.playerXId}
             remainingMs={xRemainingMs}
+            initialMs={game.clock.initialMs}
           />
-
-          <div className="flex items-center justify-between gap-3 rounded-2xl border border-[color:var(--color-line-soft)] bg-[color:var(--color-panel)] px-4 py-3">
-            <div className="text-sm text-[color:var(--color-ink-muted)]">
-              {opponentDisconnected && disconnectCountdownMs !== null
-                ? `Opponent disconnected. ${canClaimForfeit ? "Claim the win now." : `Forfeit in ${formatCountdown(disconnectCountdownMs)}.`}`
-                : game.status === "active"
-                ? `Playing ${game.preset.label}`
-                : game.winnerId
-                  ? `${game.winnerId === viewer.id ? "You won" : "Game over"}`
-                  : "Game over"}
-            </div>
-            <div className="flex items-center gap-2">
-              {canClaimForfeit ? (
-                <Button
-                  size="sm"
-                  disabled={pending}
-                  onClick={() => {
-                    startTransition(async () => {
-                      await runAction(`/api/games/${game.id}/claim-forfeit`);
-                    });
-                  }}
-                >
-                  Claim Forfeit
-                </Button>
-              ) : null}
-              {viewerIsPlayer ? (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  disabled={pending || game.status !== "active"}
-                  onClick={() => {
-                    startTransition(async () => {
-                      await runAction(`/api/games/${game.id}/resign`);
-                    });
-                  }}
-                >
-                  Resign
-                </Button>
-              ) : null}
-              <Button variant="secondary" size="sm" onClick={() => router.push("/")}>
-                Home
-              </Button>
-            </div>
-          </div>
-        </section>
-
-        <aside className="hidden min-h-0 lg:block">
-          <MoveList moves={game.moves} />
-        </aside>
-      </div>
+      </section>
     </main>
   );
 }

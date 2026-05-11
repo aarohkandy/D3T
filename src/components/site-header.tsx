@@ -1,3 +1,7 @@
+"use client";
+
+import { usePathname } from "next/navigation";
+
 import type { AppViewer } from "@/lib/auth/session";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
@@ -5,6 +9,13 @@ import { SiteHeaderChallenge } from "@/components/site-header-challenge";
 import { ButtonLink } from "@/components/ui/button";
 
 export function SiteHeader({ viewer }: { viewer: AppViewer | null }) {
+  const pathname = usePathname();
+  const isPlayRoute = pathname.startsWith("/play/");
+
+  if (isPlayRoute) {
+    return null;
+  }
+
   return (
     <header className="pointer-events-none fixed inset-x-0 top-0 z-30">
       <div className="flex w-full items-start justify-between gap-4 px-4 pt-4 sm:px-6">

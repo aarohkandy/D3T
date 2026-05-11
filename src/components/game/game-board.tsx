@@ -62,18 +62,6 @@ const BOARD_CELLS: BoardCell[] = Array.from(
   },
 );
 
-function ownerClass(owner: "X" | "O" | null) {
-  if (owner === "X") {
-    return "text-[color:var(--color-mark-x)]";
-  }
-
-  if (owner === "O") {
-    return "text-[color:var(--color-mark-o)]";
-  }
-
-  return "text-transparent";
-}
-
 function MarkGlyph({
   owner,
   animate,
@@ -97,7 +85,7 @@ function MarkGlyph({
   return (
     <span className={cn("d3t-mark d3t-mark-o", animate && "d3t-mark-fresh")} aria-hidden="true">
       <svg viewBox="0 0 100 100" className="d3t-mark-o-svg">
-        <circle className="d3t-mark-o-ring" cx="50" cy="50" r="32" />
+        <circle className="d3t-mark-o-ring" cx="50" cy="50" r="37" />
       </svg>
     </span>
   );
@@ -110,26 +98,26 @@ function leafFill(
   isLegal: boolean,
 ) {
   if (isLegal) {
-    return "bg-[rgba(78,61,49,0.14)]";
+    return "is-legal";
   }
 
   if (isForced) {
-    return "bg-[rgba(78,61,49,0.06)]";
+    return "is-forced";
   }
 
   if (status === "draw") {
-    return "bg-[rgba(78,61,49,0.04)]";
+    return "is-draw";
   }
 
   if (winner === "X") {
-    return "bg-[rgba(198,83,77,0.08)]";
+    return "is-x-won";
   }
 
   if (winner === "O") {
-    return "bg-[rgba(69,119,204,0.08)]";
+    return "is-o-won";
   }
 
-  return "bg-transparent";
+  return null;
 }
 
 export function GameBoard({
@@ -151,11 +139,11 @@ export function GameBoard({
   const animatedMoveToken = state.lastMove?.moveNumber ?? 0;
 
   return (
-    <div className="flex h-full w-full items-center justify-center">
+    <div className="d3t-board-wrap">
       <div
-        className="grid aspect-square h-full max-h-full w-auto max-w-full overflow-hidden rounded-[22px] border border-[color:var(--color-line-strong)] bg-[rgba(255,251,245,0.82)] shadow-[0_24px_60px_rgba(88,66,46,0.12)]"
+        className="d3t-board-grid grid aspect-square max-h-full overflow-hidden"
         style={{
-          maxWidth: "980px",
+          width: "min(100%, calc(100svh - 242px), 980px)",
           gridTemplateColumns: "repeat(27, minmax(0, 1fr))",
           gridTemplateRows: "repeat(27, minmax(0, 1fr))",
         }}
@@ -177,20 +165,15 @@ export function GameBoard({
               onClick={() => onPlay?.({ t1, t2, t3 })}
               aria-label={`Play ${t1}, ${t2}, ${t3}`}
               className={cn(
-                "group relative grid min-h-0 min-w-0 place-items-center overflow-hidden border-solid border-[rgba(71,56,43,0.2)] text-[clamp(8px,1.2vw,20px)] font-semibold leading-none transition duration-150 ease-out will-change-transform",
-                ownerClass(owner),
+                "d3t-cell group relative grid min-h-0 min-w-0 place-items-center overflow-hidden border-solid transition duration-150 ease-out will-change-transform",
                 leafFill(leafBoard?.status ?? "open", leafBoard?.winner ?? null, isForced, isLegal),
-                canClick && "cursor-pointer hover:z-[1] hover:scale-[1.04] hover:bg-[rgba(78,61,49,0.18)] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.28)] active:scale-[0.96]",
-                isFresh && "z-[2]",
+                owner === "X" && "has-x",
+                owner === "O" && "has-o",
+                canClick && "is-clickable cursor-pointer",
+                isFresh && "is-fresh z-[2]",
               )}
               style={style}
             >
-              {canClick ? (
-                <span
-                  aria-hidden="true"
-                  className="pointer-events-none absolute inset-[14%] rounded-[8px] bg-[radial-gradient(circle,rgba(255,255,255,0.14),transparent_70%)] opacity-0 transition duration-150 group-hover:opacity-100"
-                />
-              ) : null}
               <MarkGlyph key={isFresh ? `${moveKey}:${animatedMoveToken}` : moveKey} owner={owner} animate={isFresh} />
             </button>
           );
