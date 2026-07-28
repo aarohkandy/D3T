@@ -71,9 +71,7 @@ function PlayerPanel({
         </div>
         <div className="d3t-player-card__copy">
           <p className="d3t-player-card__name">{name}</p>
-          <p className="d3t-player-card__relation">
-            {expired ? "Flagged" : relation}
-          </p>
+          <p className="d3t-player-card__relation">{expired ? "Flagged" : relation}</p>
         </div>
       </div>
       <div className="d3t-player-card__readout">
@@ -93,7 +91,9 @@ export function GameRoomClient({
   initialGame: GameAggregate;
   viewer: AppViewer;
 }) {
-  const initialSyncMs = Number.isNaN(Date.parse(initialGame.updatedAt)) ? 0 : Date.parse(initialGame.updatedAt);
+  const initialSyncMs = Number.isNaN(Date.parse(initialGame.updatedAt))
+    ? 0
+    : Date.parse(initialGame.updatedAt);
   const [game, setGame] = useState(initialGame);
   const [syncedAtMs, setSyncedAtMs] = useState(initialSyncMs);
   const [nowMs, setNowMs] = useState(initialSyncMs);
@@ -128,30 +128,39 @@ export function GameRoomClient({
     const supabase = getBrowserSupabaseClient();
     const channel = supabase?.channel(`game:${game.id}`);
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "games",
-      filter: `id=eq.${game.id}`,
-    }, () => {
-      void refreshGame();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "games",
+        filter: `id=eq.${game.id}`,
+      },
+      () => {
+        void refreshGame();
+      },
+    );
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "moves",
-      filter: `game_id=eq.${game.id}`,
-    }, () => {
-      void refreshGame();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "moves",
+        filter: `game_id=eq.${game.id}`,
+      },
+      () => {
+        void refreshGame();
+      },
+    );
 
     void channel?.subscribe();
-    const pollMs = game.status === "active" && game.currentTurnId !== viewer.id
-      ? 2_000
-      : supabase
-        ? 10_000
-        : 2_000;
+    const pollMs =
+      game.status === "active" && game.currentTurnId !== viewer.id
+        ? 2_000
+        : supabase
+          ? 10_000
+          : 2_000;
 
     const interval = window.setInterval(() => {
       void refreshGame();
@@ -222,32 +231,32 @@ export function GameRoomClient({
     <main className="d3t-play-screen flex h-[100svh] w-full items-center justify-center overflow-hidden px-2 py-2 sm:px-3">
       <div className="d3t-play-screen__texture" aria-hidden="true" />
       <section className="d3t-match-shell">
-          <PlayerPanel
-            mark="O"
-            name={game.playerO?.username ?? "Waiting..."}
-            relation={oRelation}
-            active={game.currentTurnId === game.playerOId}
-            remainingMs={oRemainingMs}
-            initialMs={game.clock.initialMs}
-          />
+        <PlayerPanel
+          mark="O"
+          name={game.playerO?.username ?? "Waiting..."}
+          relation={oRelation}
+          active={game.currentTurnId === game.playerOId}
+          remainingMs={oRemainingMs}
+          initialMs={game.clock.initialMs}
+        />
 
-          <div className="d3t-board-stage">
-            <GameBoard
-              state={game.state}
-              legalMoves={legalMoves}
-              onPlay={handlePlay}
-              disabled={!canPlay || pending}
-            />
-          </div>
-
-          <PlayerPanel
-            mark="X"
-            name={game.playerX?.username ?? "Waiting..."}
-            relation={xRelation}
-            active={game.currentTurnId === game.playerXId}
-            remainingMs={xRemainingMs}
-            initialMs={game.clock.initialMs}
+        <div className="d3t-board-stage">
+          <GameBoard
+            state={game.state}
+            legalMoves={legalMoves}
+            onPlay={handlePlay}
+            disabled={!canPlay || pending}
           />
+        </div>
+
+        <PlayerPanel
+          mark="X"
+          name={game.playerX?.username ?? "Waiting..."}
+          relation={xRelation}
+          active={game.currentTurnId === game.playerXId}
+          remainingMs={xRemainingMs}
+          initialMs={game.clock.initialMs}
+        />
       </section>
     </main>
   );

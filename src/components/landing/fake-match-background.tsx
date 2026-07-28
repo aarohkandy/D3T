@@ -2,7 +2,12 @@
 
 import { useEffect, useRef } from "react";
 
-import { applyMoveToState, createInitialGameState, getLegalMoves, type D3TGameState } from "@/lib/d3t/engine";
+import {
+  applyMoveToState,
+  createInitialGameState,
+  getLegalMoves,
+  type D3TGameState,
+} from "@/lib/d3t/engine";
 
 const BOARD_CELLS = 27;
 const BOARD_SIZE = 972;
@@ -65,13 +70,14 @@ function drawBoard(ctx: CanvasRenderingContext2D, visual: VisualState) {
     const isLastMove = visual.lastMoveKey === `${t1}-${t2}-${t3}`;
 
     if (owner === "X" || owner === "O") {
-      ctx.fillStyle = owner === "X"
-        ? isLastMove
-          ? "rgba(198, 83, 77, 0.22)"
-          : "rgba(198, 83, 77, 0.1)"
-        : isLastMove
-          ? "rgba(69, 119, 204, 0.22)"
-          : "rgba(69, 119, 204, 0.1)";
+      ctx.fillStyle =
+        owner === "X"
+          ? isLastMove
+            ? "rgba(198, 83, 77, 0.22)"
+            : "rgba(198, 83, 77, 0.1)"
+          : isLastMove
+            ? "rgba(69, 119, 204, 0.22)"
+            : "rgba(69, 119, 204, 0.1)";
       ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
       ctx.fillStyle = owner === "X" ? "#c6534d" : "#4577cc";

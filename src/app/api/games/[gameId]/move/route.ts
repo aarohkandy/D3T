@@ -11,10 +11,7 @@ const moveSchema = z.object({
   t3: z.number().int().min(1).max(9),
 });
 
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ gameId: string }> },
-) {
+export async function POST(request: Request, { params }: { params: Promise<{ gameId: string }> }) {
   try {
     const viewer = await requireApiViewer();
     const { gameId } = await params;

@@ -36,9 +36,11 @@ function PresetSelector({
           type="button"
           disabled={disabled}
           onClick={() => onSelect(preset.id)}
-          className={selectedPreset === preset.id
-            ? "rounded-full border border-[rgba(58,42,28,0.18)] bg-[color:var(--color-accent)] px-4 py-2 text-sm font-semibold text-[color:var(--color-ink-strong)] shadow-[0_10px_24px_rgba(86,63,42,0.16)] disabled:cursor-not-allowed disabled:opacity-60"
-            : "rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"}
+          className={
+            selectedPreset === preset.id
+              ? "rounded-full border border-[rgba(58,42,28,0.18)] bg-[color:var(--color-accent)] px-4 py-2 text-sm font-semibold text-[color:var(--color-ink-strong)] shadow-[0_10px_24px_rgba(86,63,42,0.16)] disabled:cursor-not-allowed disabled:opacity-60"
+              : "rounded-full border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.78)] px-4 py-2 text-sm font-medium text-[color:var(--color-ink)] disabled:cursor-not-allowed disabled:opacity-60"
+          }
         >
           {preset.label}
         </button>
@@ -78,16 +80,15 @@ function ChallengeCard({
   onAccept?: (challengeId: string) => void;
   onDecline?: (challengeId: string) => void;
 }) {
-  const label = onAccept || onDecline
-    ? `${challenge.fromUser?.username ?? "Unknown"} wants to play ${challenge.preset.label}`
-    : `Waiting on ${challenge.toUser?.username ?? "Unknown"} for ${challenge.preset.label}`;
+  const label =
+    onAccept || onDecline
+      ? `${challenge.fromUser?.username ?? "Unknown"} wants to play ${challenge.preset.label}`
+      : `Waiting on ${challenge.toUser?.username ?? "Unknown"} for ${challenge.preset.label}`;
 
   return (
     <div className="flex items-center justify-between gap-4 rounded-[24px] border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.76)] px-4 py-4 shadow-[0_14px_34px_rgba(96,73,48,0.06)]">
       <div>
-        <p className="text-sm font-semibold text-[color:var(--color-ink)]">
-          {label}
-        </p>
+        <p className="text-sm font-semibold text-[color:var(--color-ink)]">{label}</p>
         <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[color:var(--color-ink-muted)]">
           {challenge.preset.description}
         </p>
@@ -119,7 +120,9 @@ export function PlayHub({
   const [hub, setHub] = useState(initialHub);
   const [selectedPreset, setSelectedPreset] = useState<TimePresetId>("blitz");
   const [challengeName, setChallengeName] = useState("");
-  const [quickplay, setQuickplay] = useState<QuickplayState>(initialHub?.quickplay ?? createIdleQuickplayState());
+  const [quickplay, setQuickplay] = useState<QuickplayState>(
+    initialHub?.quickplay ?? createIdleQuickplayState(),
+  );
   const [searchClockMs, setSearchClockMs] = useState(() => Date.now());
   const [pending, startTransition] = useTransition();
   const isSearching = quickplay.status === "searching";
@@ -150,47 +153,66 @@ export function PlayHub({
     const supabase = getBrowserSupabaseClient();
     const channel = supabase?.channel(`hub:${viewer.id}`);
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "games",
-      filter: `player_x_id=eq.${viewer.id}`,
-    }, () => {
-      void refreshHub();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "games",
+        filter: `player_x_id=eq.${viewer.id}`,
+      },
+      () => {
+        void refreshHub();
+      },
+    );
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "games",
-      filter: `player_o_id=eq.${viewer.id}`,
-    }, () => {
-      void refreshHub();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "games",
+        filter: `player_o_id=eq.${viewer.id}`,
+      },
+      () => {
+        void refreshHub();
+      },
+    );
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "challenges",
-      filter: `from_user_id=eq.${viewer.id}`,
-    }, () => {
-      void refreshHub();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "challenges",
+        filter: `from_user_id=eq.${viewer.id}`,
+      },
+      () => {
+        void refreshHub();
+      },
+    );
 
-    channel?.on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "challenges",
-      filter: `to_user_id=eq.${viewer.id}`,
-    }, () => {
-      void refreshHub();
-    });
+    channel?.on(
+      "postgres_changes",
+      {
+        event: "*",
+        schema: "public",
+        table: "challenges",
+        filter: `to_user_id=eq.${viewer.id}`,
+      },
+      () => {
+        void refreshHub();
+      },
+    );
 
     void channel?.subscribe();
 
-    const interval = window.setInterval(() => {
-      void refreshHub();
-    }, supabase ? 12_000 : 3_000);
+    const interval = window.setInterval(
+      () => {
+        void refreshHub();
+      },
+      supabase ? 12_000 : 3_000,
+    );
 
     return () => {
       window.clearInterval(interval);
@@ -331,7 +353,8 @@ export function PlayHub({
                 D3T
               </h1>
               <p className="max-w-[440px] text-xl leading-8 text-[color:var(--color-ink-soft)]">
-                Grandfather Tic-Tac-Toe with three nested boards, forced replies, and live head-to-head games.
+                Grandfather Tic-Tac-Toe with three nested boards, forced replies, and live
+                head-to-head games.
               </p>
               <p className="max-w-[460px] text-sm leading-7 text-[color:var(--color-ink-muted)]">
                 Create an account, pick a clock, and challenge a friend by username.
@@ -374,10 +397,16 @@ export function PlayHub({
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[color:var(--color-ink-muted)]">
               Play
             </p>
-            <h1 className="text-4xl font-semibold tracking-[-0.06em] text-[color:var(--color-ink)]">Start a game.</h1>
+            <h1 className="text-4xl font-semibold tracking-[-0.06em] text-[color:var(--color-ink)]">
+              Start a game.
+            </h1>
           </div>
 
-          <PresetSelector selectedPreset={selectedPreset} onSelect={setSelectedPreset} disabled={isSearching} />
+          <PresetSelector
+            selectedPreset={selectedPreset}
+            onSelect={setSelectedPreset}
+            disabled={isSearching}
+          />
 
           <div className="grid gap-3">
             <div className="rounded-[24px] border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.72)] p-5 shadow-[0_14px_34px_rgba(96,73,48,0.06)]">
@@ -385,7 +414,8 @@ export function PlayHub({
                 <div>
                   <p className="text-sm font-semibold text-[color:var(--color-ink)]">Quick Match</p>
                   <p className="mt-2 text-sm leading-6 text-[color:var(--color-ink-muted)]">
-                    Jump into the first open seat for this clock. Most queues should resolve in under a minute.
+                    Jump into the first open seat for this clock. Most queues should resolve in
+                    under a minute.
                   </p>
                 </div>
                 {quickplay.status === "searching" ? (
@@ -400,7 +430,12 @@ export function PlayHub({
                     <div className="flex min-h-12 flex-1 items-center rounded-xl border border-[color:var(--color-line-soft)] bg-[color:var(--color-panel-soft)] px-4 text-sm text-[color:var(--color-ink-muted)]">
                       Finding your table...
                     </div>
-                    <Button variant="secondary" size="lg" disabled={pending} onClick={cancelQuickplay}>
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      disabled={pending}
+                      onClick={cancelQuickplay}
+                    >
                       Cancel
                     </Button>
                   </>
@@ -451,7 +486,9 @@ export function PlayHub({
 
         {hub?.incomingChallenges?.length ? (
           <Card className="space-y-4">
-            <p className="text-lg font-semibold text-[color:var(--color-ink)]">Incoming challenges</p>
+            <p className="text-lg font-semibold text-[color:var(--color-ink)]">
+              Incoming challenges
+            </p>
             {hub.incomingChallenges.map((challenge) => (
               <ChallengeCard
                 key={challenge.id}

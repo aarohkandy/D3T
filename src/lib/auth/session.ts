@@ -112,16 +112,20 @@ export async function getViewer(): Promise<AppViewer | null> {
         (typeof user.user_metadata.username === "string" && user.user_metadata.username) ||
         user.email?.split("@")[0] ||
         user.id.slice(-8),
-      avatarUrl: typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null,
+      avatarUrl:
+        typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null,
     });
 
-    const username = profile?.username ?? sanitizeUsername(user.email?.split("@")[0] ?? user.id.slice(-8));
+    const username =
+      profile?.username ?? sanitizeUsername(user.email?.split("@")[0] ?? user.id.slice(-8));
 
     return {
       id: user.id,
       username,
       email: user.email ?? `${user.id}@d3t.app`,
-      avatarUrl: profile?.avatarUrl ?? (typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null),
+      avatarUrl:
+        profile?.avatarUrl ??
+        (typeof user.user_metadata.avatar_url === "string" ? user.user_metadata.avatar_url : null),
       displayName: username,
       isMock: false,
       hasSeenForcedTargetHint: Boolean(profile?.hasSeenForcedTargetHint),

@@ -16,7 +16,10 @@ const signUpSchema = z.object({
 });
 
 function sanitizeUsername(raw: string) {
-  const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 18);
+  const normalized = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 18);
   if (normalized.length < 2) {
     throw new AppError("Username must contain at least two letters or numbers.");
   }
@@ -38,7 +41,9 @@ function isExistingAccountError(error: unknown) {
     return false;
   }
 
-  return /already registered|already exists|duplicate|email.*exists|user.*exists/i.test(error.message);
+  return /already registered|already exists|duplicate|email.*exists|user.*exists/i.test(
+    error.message,
+  );
 }
 
 async function signInExistingAccount(params: {
@@ -54,7 +59,10 @@ async function signInExistingAccount(params: {
   });
 
   if (error) {
-    throw new AppError(params.errorMessage ?? "That account already exists. Log in with the right password.", 409);
+    throw new AppError(
+      params.errorMessage ?? "That account already exists. Log in with the right password.",
+      409,
+    );
   }
 
   return response;
@@ -68,7 +76,10 @@ export async function POST(request: Request) {
 
     const db = getDb();
     if (!db) {
-      throw new AppError("D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.", 500);
+      throw new AppError(
+        "D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.",
+        500,
+      );
     }
 
     const payload = signUpSchema.parse(await request.json());
@@ -81,7 +92,10 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       if (isDatabaseSetupError(error)) {
-        throw new AppError("The database is not ready yet. Check DATABASE_URL and run the migrations.", 500);
+        throw new AppError(
+          "The database is not ready yet. Check DATABASE_URL and run the migrations.",
+          500,
+        );
       }
 
       throw error;
@@ -133,7 +147,10 @@ export async function POST(request: Request) {
     } catch (error) {
       await admin.auth.admin.deleteUser(created.data.user.id);
       if (isDatabaseSetupError(error)) {
-        throw new AppError("The database is not ready yet. Check DATABASE_URL and run the migrations.", 500);
+        throw new AppError(
+          "The database is not ready yet. Check DATABASE_URL and run the migrations.",
+          500,
+        );
       }
 
       throw new AppError("Could not save your profile. Try again in a minute.", 500);

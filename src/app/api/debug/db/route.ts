@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { appConfig, isPostgresEnabled, isSupabaseAuthEnabled, isSupabaseRealtimeEnabled } from "@/lib/config";
+import {
+  appConfig,
+  isPostgresEnabled,
+  isSupabaseAuthEnabled,
+  isSupabaseRealtimeEnabled,
+} from "@/lib/config";
 import { runDbDiagnostic } from "@/lib/db/client";
 
 export async function GET() {

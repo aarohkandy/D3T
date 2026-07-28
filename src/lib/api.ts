@@ -20,11 +20,17 @@ function getErrorText(error: Error) {
 function getSetupErrorMessage(error: Error) {
   const text = getErrorText(error);
 
-  if (/DATABASE_URL|Postgres driver|url: ''|database is not configured|invalid.*connection.*string/i.test(text)) {
+  if (
+    /DATABASE_URL|Postgres driver|url: ''|database is not configured|invalid.*connection.*string/i.test(
+      text,
+    )
+  ) {
     return "D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.";
   }
 
-  if (/relation .* does not exist|column .* does not exist|undefined_table|42703|42P01/i.test(text)) {
+  if (
+    /relation .* does not exist|column .* does not exist|undefined_table|42703|42P01/i.test(text)
+  ) {
     return "D3T database tables are missing. Run npm run db:push, then try again.";
   }
 
@@ -32,7 +38,11 @@ function getSetupErrorMessage(error: Error) {
     return "D3T could not connect to Supabase Postgres. Check DATABASE_URL and the database password.";
   }
 
-  if (/ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|ETIMEDOUT|timeout|connection terminated|fetch failed|no pg_hba|SSL|Tenant or user not found|role .* does not exist|PostgresError/i.test(text)) {
+  if (
+    /ENOTFOUND|getaddrinfo|ECONNREFUSED|ECONNRESET|ETIMEDOUT|timeout|connection terminated|fetch failed|no pg_hba|SSL|Tenant or user not found|role .* does not exist|PostgresError/i.test(
+      text,
+    )
+  ) {
     return "D3T could not query Supabase Postgres. Check DATABASE_URL, the database password, and whether migrations have run.";
   }
 
@@ -71,7 +81,10 @@ export function handleRouteError(error: unknown) {
 
   console.error(error);
   return NextResponse.json(
-    { error: "Server setup is not finished yet. Check Supabase keys, DATABASE_URL, and database migrations." },
+    {
+      error:
+        "Server setup is not finished yet. Check Supabase keys, DATABASE_URL, and database migrations.",
+    },
     { status: 500 },
   );
 }

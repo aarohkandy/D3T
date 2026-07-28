@@ -31,26 +31,28 @@ export async function POST(request: Request) {
 
     const payload = localAuthSchema.parse(await request.json());
 
-    const viewer = payload.mode === "sign-in"
-      ? getLocalViewerByUsername(payload.username)
-      : (() => {
-        const existing = getLocalViewerByUsername(payload.username);
-        if (existing) {
-          return null;
-        }
+    const viewer =
+      payload.mode === "sign-in"
+        ? getLocalViewerByUsername(payload.username)
+        : (() => {
+            const existing = getLocalViewerByUsername(payload.username);
+            if (existing) {
+              return null;
+            }
 
-        return createLocalViewer({
-          username: payload.username,
-          email: payload.email,
-        });
-      })();
+            return createLocalViewer({
+              username: payload.username,
+              email: payload.email,
+            });
+          })();
 
     if (!viewer) {
       return NextResponse.json(
         {
-          error: payload.mode === "sign-in"
-            ? "No local account matches that username."
-            : "That username is already taken.",
+          error:
+            payload.mode === "sign-in"
+              ? "No local account matches that username."
+              : "That username is already taken.",
         },
         { status: payload.mode === "sign-in" ? 404 : 409 },
       );

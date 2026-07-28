@@ -92,7 +92,9 @@ export function LocalAuthForm({
           >
             <div className="grid gap-4 sm:grid-cols-2">
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
+                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">
+                  Username
+                </span>
                 <input
                   value={username}
                   onChange={(event) => setUsername(event.target.value)}
@@ -103,7 +105,9 @@ export function LocalAuthForm({
 
               {isSignUp ? (
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
+                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">
+                    Email
+                  </span>
                   <input
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
@@ -115,11 +119,7 @@ export function LocalAuthForm({
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isBusy || username.trim().length < 2}
-              >
+              <Button type="submit" size="lg" disabled={isBusy || username.trim().length < 2}>
                 {isSignUp ? "Create Account" : "Log In"}
               </Button>
               <Link
@@ -137,7 +137,9 @@ export function LocalAuthForm({
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[color:var(--color-ink-muted)]">
               Quick Start
             </p>
-            <p className="text-base font-semibold text-[color:var(--color-ink)]">Local test accounts</p>
+            <p className="text-base font-semibold text-[color:var(--color-ink)]">
+              Local test accounts
+            </p>
           </div>
 
           <div className="space-y-2">
@@ -159,8 +161,12 @@ export function LocalAuthForm({
                 className="flex w-full cursor-pointer items-center justify-between rounded-2xl border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.72)] px-4 py-3 text-left transition hover:border-[color:var(--color-line-strong)] hover:bg-[rgba(255,252,247,0.92)] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <span>
-                  <span className="block text-sm font-semibold text-[color:var(--color-ink)]">{viewer.username}</span>
-                  <span className="block text-xs text-[color:var(--color-ink-muted)]">@{viewer.username}</span>
+                  <span className="block text-sm font-semibold text-[color:var(--color-ink)]">
+                    {viewer.username}
+                  </span>
+                  <span className="block text-xs text-[color:var(--color-ink-muted)]">
+                    @{viewer.username}
+                  </span>
                 </span>
                 <span className="text-xs font-semibold uppercase tracking-[0.16em] text-[color:var(--color-ink-muted)]">
                   {quickStartUsername === viewer.username ? "Signing in" : "Sign in"}

@@ -2,7 +2,8 @@ import type { AppViewer } from "@/lib/auth/session";
 import type { D3TGameState, D3TMove } from "@/lib/d3t/engine";
 
 export type GameMode = "challenge" | "quickplay";
-export type GameStatus = "pending" | "active" | "finished" | "forfeit" | "declined" | "expired" | "cancelled";
+export type GameStatus =
+  "pending" | "active" | "finished" | "forfeit" | "declined" | "expired" | "cancelled";
 export type ChallengeStatus = "pending" | "accepted" | "declined" | "expired" | "cancelled";
 export type PlayerMark = "X" | "O";
 export type TimePresetId = "bullet" | "blitz" | "rapid" | "classic";

@@ -15,8 +15,7 @@ const DEFAULT_INITIAL_MS = 3 * 60 * 1000;
 const DEFAULT_INCREMENT_MS = 2 * 1000;
 
 export type PortalResult =
-  | { type: "board"; winner: D3TMark | null }
-  | { type: "timeout"; winner: D3TMark; loser: D3TMark };
+  { type: "board"; winner: D3TMark | null } | { type: "timeout"; winner: D3TMark; loser: D3TMark };
 
 export type PortalGame = {
   state: D3TGameState;
@@ -32,7 +31,9 @@ export type PortalGame = {
   lastError: string | null;
 };
 
-function withDerivedFields(game: Omit<PortalGame, "status" | "turn" | "winner" | "moveCount">): PortalGame {
+function withDerivedFields(
+  game: Omit<PortalGame, "status" | "turn" | "winner" | "moveCount">,
+): PortalGame {
   return {
     ...game,
     status: game.result ? "finished" : game.state.status,
@@ -42,12 +43,14 @@ function withDerivedFields(game: Omit<PortalGame, "status" | "turn" | "winner" |
   };
 }
 
-export function createInitialPortalState(options: {
-  now?: number;
-  starter?: D3TMark;
-  initialMs?: number;
-  incrementMs?: number;
-} = {}): PortalGame {
+export function createInitialPortalState(
+  options: {
+    now?: number;
+    starter?: D3TMark;
+    initialMs?: number;
+    incrementMs?: number;
+  } = {},
+): PortalGame {
   const initialMs = options.initialMs ?? DEFAULT_INITIAL_MS;
 
   return withDerivedFields({
@@ -63,14 +66,25 @@ export function createInitialPortalState(options: {
 
 export const createPortalGame = createInitialPortalState;
 
-export function tickPortalTimers(game: PortalGame, deltaOrOptions: number | { deltaMs?: number; now?: number }): PortalGame {
+export function tickPortalTimers(
+  game: PortalGame,
+  deltaOrOptions: number | { deltaMs?: number; now?: number },
+): PortalGame {
   if (game.result || game.state.status !== "active") {
-    return withDerivedFields({ ...game, lastTickAt: typeof deltaOrOptions === "object" && deltaOrOptions.now ? deltaOrOptions.now : game.lastTickAt });
+    return withDerivedFields({
+      ...game,
+      lastTickAt:
+        typeof deltaOrOptions === "object" && deltaOrOptions.now
+          ? deltaOrOptions.now
+          : game.lastTickAt,
+    });
   }
 
-  const now = typeof deltaOrOptions === "object" && deltaOrOptions.now !== undefined
-    ? deltaOrOptions.now
-    : game.lastTickAt + (typeof deltaOrOptions === "number" ? deltaOrOptions : deltaOrOptions.deltaMs ?? 0);
+  const now =
+    typeof deltaOrOptions === "object" && deltaOrOptions.now !== undefined
+      ? deltaOrOptions.now
+      : game.lastTickAt +
+        (typeof deltaOrOptions === "number" ? deltaOrOptions : (deltaOrOptions.deltaMs ?? 0));
   const elapsed = Math.max(0, now - game.lastTickAt);
   const player = game.state.turn;
   const remaining = Math.max(0, game.timers[player] - elapsed);
@@ -98,7 +112,11 @@ export function tickPortalTimers(game: PortalGame, deltaOrOptions: number | { de
 
 export const advancePortalTimers = tickPortalTimers;
 
-export function applyPortalMove(game: PortalGame, move: D3TMove, now = game.lastTickAt): PortalGame {
+export function applyPortalMove(
+  game: PortalGame,
+  move: D3TMove,
+  now = game.lastTickAt,
+): PortalGame {
   const ticked = tickPortalTimers(game, { now });
   if (ticked.result) {
     return ticked;
@@ -125,12 +143,13 @@ export function applyPortalMove(game: PortalGame, move: D3TMove, now = game.last
     timers,
     lastTickAt: now,
     history: [...ticked.history, applied.move],
-    result: applied.state.status === "finished"
-      ? {
-          type: "board",
-          winner: applied.state.winner,
-        }
-      : null,
+    result:
+      applied.state.status === "finished"
+        ? {
+            type: "board",
+            winner: applied.state.winner,
+          }
+        : null,
     lastError: null,
   });
 }

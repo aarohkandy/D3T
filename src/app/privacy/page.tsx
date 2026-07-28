@@ -43,7 +43,8 @@ export default function PrivacyPage() {
             How D3T handles player data.
           </h1>
           <p className="max-w-3xl text-lg leading-8 text-[color:var(--color-ink-soft)]">
-            This policy is written for the public launch version of D3T. It explains what we collect, why we collect it, and how we protect it while the game runs on the web.
+            This policy is written for the public launch version of D3T. It explains what we
+            collect, why we collect it, and how we protect it while the game runs on the web.
           </p>
           <p className="text-sm text-[color:var(--color-ink-muted)]">
             Effective date: April 22, 2026
@@ -72,7 +73,8 @@ export default function PrivacyPage() {
               Contact
             </p>
             <p className="mt-2 text-sm leading-6 text-[color:var(--color-ink-soft)]">
-              Use the project&apos;s official support or privacy contact for deletion and access requests.
+              Use the project&apos;s official support or privacy contact for deletion and access
+              requests.
             </p>
           </div>
         </section>
@@ -94,7 +96,10 @@ export default function PrivacyPage() {
               Your choices
             </h2>
             <p className="max-w-4xl text-base leading-7 text-[color:var(--color-ink-soft)]">
-              You can stop using the service at any time, sign out of your account, or request account help through the project&apos;s support channel. If you do not want analytics-like launch data collected in your browser session, use the service only after reviewing the current product settings and browser privacy controls.
+              You can stop using the service at any time, sign out of your account, or request
+              account help through the project&apos;s support channel. If you do not want
+              analytics-like launch data collected in your browser session, use the service only
+              after reviewing the current product settings and browser privacy controls.
             </p>
           </section>
         </div>

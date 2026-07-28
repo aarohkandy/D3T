@@ -6,8 +6,8 @@ const rawDevDemoMode = process.env.D3T_ENABLE_DEV_DEMO ?? "true";
 const hasSupabaseUrl = Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL);
 const hasSupabasePublishableKey = Boolean(
   process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISIHABLE_KEY ??
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  process.env.NEXT_PUBLIC_SUPABASE_PUBLISIHABLE_KEY ??
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
 );
 const hasSupabaseServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
@@ -24,7 +24,8 @@ export const appConfig = {
   hasSupabaseServiceRole,
   hasSupabaseKeys: hasSupabaseUrl && hasSupabasePublishableKey,
   hasDatabaseUrl,
-  hasProductionBackend: hasSupabaseUrl && hasSupabasePublishableKey && hasSupabaseServiceRole && hasDatabaseUrl,
+  hasProductionBackend:
+    hasSupabaseUrl && hasSupabasePublishableKey && hasSupabaseServiceRole && hasDatabaseUrl,
   disconnectGraceMs: 2 * 60 * 1000,
   presenceHeartbeatMs: 15_000,
   challengeExpiryMs: 2 * 60 * 1000,

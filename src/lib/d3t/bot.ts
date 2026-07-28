@@ -107,11 +107,7 @@ function countLine(line: readonly (D3TMark | null)[], mark: D3TMark) {
   return { own, opp };
 }
 
-function scoreLines(
-  cells: readonly (D3TMark | null)[],
-  mark: D3TMark,
-  weights: readonly number[],
-) {
+function scoreLines(cells: readonly (D3TMark | null)[], mark: D3TMark, weights: readonly number[]) {
   let score = 0;
 
   for (const [a, b, c] of TOP_LINES) {
@@ -250,7 +246,11 @@ function scoreMoveHeuristic(state: D3TGameState, move: D3TMove, rootMark: D3TMar
     score += 1_800 * leafWeight * direction;
   }
 
-  if (priorMiddle.status !== "won" && nextMiddle.status === "won" && nextMiddle.winner === state.turn) {
+  if (
+    priorMiddle.status !== "won" &&
+    nextMiddle.status === "won" &&
+    nextMiddle.winner === state.turn
+  ) {
     score += 9_000 * middleWeight * direction;
   }
 
@@ -314,9 +314,11 @@ function pickTacticalMove(state: D3TGameState, legalMoves: D3TMove[]) {
       score: scoreImmediateTactic(state, move, state.turn),
     }))
     .filter(({ score }) => score > 0)
-    .sort((left, right) =>
-      right.score - left.score ||
-      scoreMoveHeuristic(state, right.move, state.turn) - scoreMoveHeuristic(state, left.move, state.turn)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        scoreMoveHeuristic(state, right.move, state.turn) -
+          scoreMoveHeuristic(state, left.move, state.turn),
     );
 
   if (ownWins.length > 0) {
@@ -330,20 +332,17 @@ function pickTacticalMove(state: D3TGameState, legalMoves: D3TMove[]) {
       score: scoreImmediateTactic(state, move, enemy),
     }))
     .filter(({ score }) => score > 0)
-    .sort((left, right) =>
-      right.score - left.score ||
-      scoreMoveHeuristic(state, right.move, state.turn) - scoreMoveHeuristic(state, left.move, state.turn)
+    .sort(
+      (left, right) =>
+        right.score - left.score ||
+        scoreMoveHeuristic(state, right.move, state.turn) -
+          scoreMoveHeuristic(state, left.move, state.turn),
     );
 
   return blocks[0]?.move ?? null;
 }
 
-function orderMoves(
-  state: D3TGameState,
-  moves: D3TMove[],
-  rootMark: D3TMark,
-  limit: number,
-) {
+function orderMoves(state: D3TGameState, moves: D3TMove[], rootMark: D3TMark, limit: number) {
   return moves
     .map((move) => ({
       move,
@@ -493,7 +492,12 @@ export function chooseBotMove({
       .sort((left, right) => right.score - left.score);
   }
 
-  return pickMove(scoredMoves, skill.pickCount, skill.softness, `${seed}:${hashText(JSON.stringify(scoredMoves[0]?.move ?? {}))}`);
+  return pickMove(
+    scoredMoves,
+    skill.pickCount,
+    skill.softness,
+    `${seed}:${hashText(JSON.stringify(scoredMoves[0]?.move ?? {}))}`,
+  );
 }
 
 export function getBotThinkTimeMs({

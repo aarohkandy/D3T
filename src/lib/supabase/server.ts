@@ -61,14 +61,10 @@ export function createAdminSupabaseClient() {
     throw new Error("Supabase admin client is not configured.");
   }
 
-  return createClient(
-    getSupabasePublicConfig().url,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
+  return createClient(getSupabasePublicConfig().url, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
     },
-  );
+  });
 }

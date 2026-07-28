@@ -15,8 +15,7 @@ const buttonVariants = cva(
           "border border-[color:var(--color-line-soft)] bg-[rgba(255,252,247,0.96)] px-5 py-3 text-[color:var(--color-ink)] shadow-[0_10px_24px_rgba(80,58,36,0.08)] hover:border-[color:var(--color-line-strong)] hover:bg-[rgba(255,249,240,1)]",
         ghost:
           "px-4 py-2 text-[color:var(--color-ink-muted)] hover:bg-[rgba(78,61,49,0.08)] hover:text-[color:var(--color-ink)]",
-        danger:
-          "bg-[color:var(--color-danger)] px-5 py-3 text-white hover:bg-[#bb514d]",
+        danger: "bg-[color:var(--color-danger)] px-5 py-3 text-white hover:bg-[#bb514d]",
       },
       size: {
         sm: "h-10 px-4",
@@ -35,22 +34,11 @@ type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> &
   VariantProps<typeof buttonVariants>;
 
 export function Button({ className, size, variant, ...props }: ButtonProps) {
-  return (
-    <button
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  );
+  return <button className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 }
 
-type ButtonLinkProps = React.ComponentProps<typeof Link> &
-  VariantProps<typeof buttonVariants>;
+type ButtonLinkProps = React.ComponentProps<typeof Link> & VariantProps<typeof buttonVariants>;
 
 export function ButtonLink({ className, size, variant, ...props }: ButtonLinkProps) {
-  return (
-    <Link
-      className={cn(buttonVariants({ variant, size }), className)}
-      {...props}
-    />
-  );
+  return <Link className={cn(buttonVariants({ variant, size }), className)} {...props} />;
 }

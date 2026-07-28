@@ -30,8 +30,11 @@ type BrowserLike = Window & {
   gdsdk?: { showAd?: () => Promise<void> | void };
 };
 
-export function createDuplicateEventGuard<T extends { id: string }>(onEventOrOptions: ((event: T) => void) | { onEvent: (event: T) => void }) {
-  const onEvent = typeof onEventOrOptions === "function" ? onEventOrOptions : onEventOrOptions.onEvent;
+export function createDuplicateEventGuard<T extends { id: string }>(
+  onEventOrOptions: ((event: T) => void) | { onEvent: (event: T) => void },
+) {
+  const onEvent =
+    typeof onEventOrOptions === "function" ? onEventOrOptions : onEventOrOptions.onEvent;
   const seen = new Set<string>();
 
   return (event: T) => {

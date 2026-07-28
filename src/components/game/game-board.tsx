@@ -62,13 +62,7 @@ const BOARD_CELLS: BoardCell[] = Array.from(
   },
 );
 
-function MarkGlyph({
-  owner,
-  animate,
-}: {
-  owner: "X" | "O" | null;
-  animate: boolean;
-}) {
+function MarkGlyph({ owner, animate }: { owner: "X" | "O" | null; animate: boolean }) {
   if (!owner) {
     return null;
   }
@@ -135,7 +129,9 @@ export function GameBoard({
     () => new Set((legalMoves ?? []).map((move) => `${move.t1}-${move.t2}-${move.t3}`)),
     [legalMoves],
   );
-  const animatedMoveKey = state.lastMove ? `${state.lastMove.t1}-${state.lastMove.t2}-${state.lastMove.t3}` : null;
+  const animatedMoveKey = state.lastMove
+    ? `${state.lastMove.t1}-${state.lastMove.t2}-${state.lastMove.t3}`
+    : null;
   const animatedMoveToken = state.lastMove?.moveNumber ?? 0;
 
   return (
@@ -174,7 +170,11 @@ export function GameBoard({
               )}
               style={style}
             >
-              <MarkGlyph key={isFresh ? `${moveKey}:${animatedMoveToken}` : moveKey} owner={owner} animate={isFresh} />
+              <MarkGlyph
+                key={isFresh ? `${moveKey}:${animatedMoveToken}` : moveKey}
+                owner={owner}
+                animate={isFresh}
+              />
             </button>
           );
         })}

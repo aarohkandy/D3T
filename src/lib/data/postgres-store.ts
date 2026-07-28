@@ -5,7 +5,16 @@ import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import type { AppViewer } from "@/lib/auth/session";
 import { appConfig } from "@/lib/config";
 import { getDb } from "@/lib/db/client";
-import { challengesTable, gamesTable, movesTable, profilesTable, type DbChallenge, type DbGame, type DbMove, type DbProfile } from "@/lib/db/schema";
+import {
+  challengesTable,
+  gamesTable,
+  movesTable,
+  profilesTable,
+  type DbChallenge,
+  type DbGame,
+  type DbMove,
+  type DbProfile,
+} from "@/lib/db/schema";
 import {
   applyMoveToState,
   createInitialGameState,
@@ -41,10 +50,38 @@ import {
 } from "@/lib/data/bots";
 
 const PRESETS: GamePreset[] = [
-  { id: "bullet", label: "1 + 0", initialMs: 60_000, incrementMs: 0, rated: true, description: "Bullet" },
-  { id: "blitz", label: "3 + 2", initialMs: 180_000, incrementMs: 2_000, rated: true, description: "Blitz" },
-  { id: "rapid", label: "5 + 0", initialMs: 300_000, incrementMs: 0, rated: true, description: "Rapid" },
-  { id: "classic", label: "10 + 0", initialMs: 600_000, incrementMs: 0, rated: true, description: "Classic" },
+  {
+    id: "bullet",
+    label: "1 + 0",
+    initialMs: 60_000,
+    incrementMs: 0,
+    rated: true,
+    description: "Bullet",
+  },
+  {
+    id: "blitz",
+    label: "3 + 2",
+    initialMs: 180_000,
+    incrementMs: 2_000,
+    rated: true,
+    description: "Blitz",
+  },
+  {
+    id: "rapid",
+    label: "5 + 0",
+    initialMs: 300_000,
+    incrementMs: 0,
+    rated: true,
+    description: "Rapid",
+  },
+  {
+    id: "classic",
+    label: "10 + 0",
+    initialMs: 600_000,
+    incrementMs: 0,
+    rated: true,
+    description: "Classic",
+  },
 ];
 
 type PersistedGame = {
@@ -121,7 +158,10 @@ function toIso(value: Date | null) {
 }
 
 function sanitizeUsername(raw: string) {
-  const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 18);
+  const normalized = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 18);
   return normalized.length > 1 ? normalized : `player${Math.floor(Math.random() * 9999)}`;
 }
 
@@ -253,8 +293,8 @@ async function resolveQuickplayRating(userId?: string | null) {
 
 function pickSeatOrder(firstPlayerId: string, secondPlayerId: string) {
   return createRandomStarter(() => Math.random()) === "X"
-    ? [firstPlayerId, secondPlayerId] as const
-    : [secondPlayerId, firstPlayerId] as const;
+    ? ([firstPlayerId, secondPlayerId] as const)
+    : ([secondPlayerId, firstPlayerId] as const);
 }
 
 function createPendingQuickplayGame(creatorId: string, presetId: TimePresetId) {
@@ -384,8 +424,12 @@ function resolveDisconnectState(game: PersistedGame, at = now()) {
     return;
   }
 
-  const xMissing = !game.playerXLastSeenAt || at.getTime() - game.playerXLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
-  const oMissing = !game.playerOLastSeenAt || at.getTime() - game.playerOLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
+  const xMissing =
+    !game.playerXLastSeenAt ||
+    at.getTime() - game.playerXLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
+  const oMissing =
+    !game.playerOLastSeenAt ||
+    at.getTime() - game.playerOLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
 
   if (xMissing === oMissing) {
     game.disconnectPlayerId = null;
@@ -395,12 +439,16 @@ function resolveDisconnectState(game: PersistedGame, at = now()) {
 
   if (xMissing) {
     game.disconnectPlayerId = game.playerXId;
-    game.disconnectExpiresAt = new Date((game.playerXLastSeenAt?.getTime() ?? at.getTime()) + appConfig.disconnectGraceMs);
+    game.disconnectExpiresAt = new Date(
+      (game.playerXLastSeenAt?.getTime() ?? at.getTime()) + appConfig.disconnectGraceMs,
+    );
     return;
   }
 
   game.disconnectPlayerId = game.playerOId;
-  game.disconnectExpiresAt = new Date((game.playerOLastSeenAt?.getTime() ?? at.getTime()) + appConfig.disconnectGraceMs);
+  game.disconnectExpiresAt = new Date(
+    (game.playerOLastSeenAt?.getTime() ?? at.getTime()) + appConfig.disconnectGraceMs,
+  );
 }
 
 function getRuntimeSignature(game: PersistedGame) {
@@ -430,7 +478,10 @@ function buildMoveRecord(move: PersistedMove): MoveRecord {
   };
 }
 
-function buildChallengeAggregate(challenge: PersistedChallenge, users: Map<string, UserProfile>): ChallengeAggregate {
+function buildChallengeAggregate(
+  challenge: PersistedChallenge,
+  users: Map<string, UserProfile>,
+): ChallengeAggregate {
   return {
     id: challenge.id,
     status: challenge.status,
@@ -446,7 +497,11 @@ function buildChallengeAggregate(challenge: PersistedChallenge, users: Map<strin
   };
 }
 
-function buildGameAggregate(game: PersistedGame, moves: PersistedMove[], users: Map<string, UserProfile>): GameAggregate {
+function buildGameAggregate(
+  game: PersistedGame,
+  moves: PersistedMove[],
+  users: Map<string, UserProfile>,
+): GameAggregate {
   return {
     id: game.id,
     roomId: game.roomId,
@@ -469,8 +524,8 @@ function buildGameAggregate(game: PersistedGame, moves: PersistedMove[], users: 
     clock: createClockState(game),
     state: game.state,
     moves: moves.map(buildMoveRecord),
-    playerX: game.playerXId ? users.get(game.playerXId) ?? null : null,
-    playerO: game.playerOId ? users.get(game.playerOId) ?? null : null,
+    playerX: game.playerXId ? (users.get(game.playerXId) ?? null) : null,
+    playerO: game.playerOId ? (users.get(game.playerOId) ?? null) : null,
     createdAt: game.createdAt.toISOString(),
     updatedAt: game.updatedAt.toISOString(),
     finishedAt: toIso(game.finishedAt),
@@ -579,7 +634,11 @@ async function getPendingQuickplayForUser(userId: string) {
     where: and(
       eq(gamesTable.mode, "quickplay"),
       eq(gamesTable.status, "pending"),
-      or(eq(gamesTable.playerXId, userId), eq(gamesTable.playerOId, userId), eq(gamesTable.creatorId, userId)),
+      or(
+        eq(gamesTable.playerXId, userId),
+        eq(gamesTable.playerOId, userId),
+        eq(gamesTable.creatorId, userId),
+      ),
     ),
     orderBy: (table, { asc }) => [asc(table.createdAt)],
   });
@@ -684,13 +743,18 @@ async function applyRecordedMove(game: PersistedGame, playerId: string, move: D3
           eq(gamesTable.id, game.id),
           eq(gamesTable.status, "active"),
           eq(gamesTable.currentTurnId, playerId),
-          previousTurnStartedAt ? eq(gamesTable.turnStartedAt, previousTurnStartedAt) : isNull(gamesTable.turnStartedAt),
+          previousTurnStartedAt
+            ? eq(gamesTable.turnStartedAt, previousTurnStartedAt)
+            : isNull(gamesTable.turnStartedAt),
         ),
       )
       .returning({ id: gamesTable.id });
 
     if (claimed.length === 0) {
-      throw new AppError("This game changed before your move was saved. Refresh and try again.", 409);
+      throw new AppError(
+        "This game changed before your move was saved. Refresh and try again.",
+        409,
+      );
     }
 
     await tx.insert(movesTable).values({
@@ -727,11 +791,13 @@ async function maybePlayBotTurn(game: PersistedGame) {
   }
 
   const rating = await resolveQuickplayRating(game.currentTurnId);
-  const thinkDeadline = game.turnStartedAt.getTime() + getBotThinkTimeMs({
-    gameId: game.id,
-    moveCount: game.state.moveCount,
-    rating,
-  });
+  const thinkDeadline =
+    game.turnStartedAt.getTime() +
+    getBotThinkTimeMs({
+      gameId: game.id,
+      moveCount: game.state.moveCount,
+      rating,
+    });
 
   if (thinkDeadline > now().getTime()) {
     return false;
@@ -777,14 +843,18 @@ async function syncQuickplayState(viewerId: string) {
 
   for (const candidate of candidates) {
     const gap = Math.abs((await resolveQuickplayRating(candidate.creatorId)) - viewerRating);
-    if (gap < bestGap || (gap === bestGap && (!bestCandidate || candidate.createdAt < bestCandidate.createdAt))) {
+    if (
+      gap < bestGap ||
+      (gap === bestGap && (!bestCandidate || candidate.createdAt < bestCandidate.createdAt))
+    ) {
       bestGap = gap;
       bestCandidate = candidate;
     }
   }
 
   if (bestCandidate) {
-    const host = bestCandidate.createdAt.getTime() <= pending.createdAt.getTime() ? bestCandidate : pending;
+    const host =
+      bestCandidate.createdAt.getTime() <= pending.createdAt.getTime() ? bestCandidate : pending;
     const guest = host.id === pending.id ? bestCandidate : pending;
     activateQuickplayGame(host, host.creatorId, guest.creatorId);
     await saveGame(requireDb(), host);
@@ -843,7 +913,9 @@ async function listChallengesForUser(userId: string, direction: "incoming" | "ou
   const db = requireDb();
   const rows = await db.query.challengesTable.findMany({
     where: and(
-      direction === "incoming" ? eq(challengesTable.toUserId, userId) : eq(challengesTable.fromUserId, userId),
+      direction === "incoming"
+        ? eq(challengesTable.toUserId, userId)
+        : eq(challengesTable.fromUserId, userId),
       inArray(challengesTable.status, ["pending", "accepted"]),
     ),
     orderBy: (table, { desc: orderDesc }) => [orderDesc(table.createdAt)],
@@ -862,7 +934,11 @@ async function findActiveGameForUser(userId: string) {
   const row = await db.query.gamesTable.findFirst({
     where: and(
       eq(gamesTable.status, "active"),
-      or(eq(gamesTable.playerXId, userId), eq(gamesTable.playerOId, userId), eq(gamesTable.creatorId, userId)),
+      or(
+        eq(gamesTable.playerXId, userId),
+        eq(gamesTable.playerOId, userId),
+        eq(gamesTable.creatorId, userId),
+      ),
     ),
     orderBy: (table, { desc: orderDesc }) => [orderDesc(table.updatedAt)],
   });
@@ -870,7 +946,10 @@ async function findActiveGameForUser(userId: string) {
   return row ? rowToGame(row) : null;
 }
 
-async function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string }) {
+async function assertNoLiveCommitments(
+  userId: string,
+  options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string },
+) {
   if (await findActiveGameForUser(userId)) {
     throw new AppError("Finish your current game before starting another one.", 409);
   }
@@ -1065,25 +1144,31 @@ async function persistStats(game: PersistedGame) {
     }
 
     if (updatedX) {
-      await tx.update(profilesTable).set({
-        wins: updatedX.wins,
-        losses: updatedX.losses,
-        draws: updatedX.draws,
-        quickplayRating: updatedX.quickplayRating,
-        quickplayGamesPlayed: updatedX.quickplayGamesPlayed,
-        updatedAt: now(),
-      }).where(eq(profilesTable.id, updatedX.id));
+      await tx
+        .update(profilesTable)
+        .set({
+          wins: updatedX.wins,
+          losses: updatedX.losses,
+          draws: updatedX.draws,
+          quickplayRating: updatedX.quickplayRating,
+          quickplayGamesPlayed: updatedX.quickplayGamesPlayed,
+          updatedAt: now(),
+        })
+        .where(eq(profilesTable.id, updatedX.id));
     }
 
     if (updatedO) {
-      await tx.update(profilesTable).set({
-        wins: updatedO.wins,
-        losses: updatedO.losses,
-        draws: updatedO.draws,
-        quickplayRating: updatedO.quickplayRating,
-        quickplayGamesPlayed: updatedO.quickplayGamesPlayed,
-        updatedAt: now(),
-      }).where(eq(profilesTable.id, updatedO.id));
+      await tx
+        .update(profilesTable)
+        .set({
+          wins: updatedO.wins,
+          losses: updatedO.losses,
+          draws: updatedO.draws,
+          quickplayRating: updatedO.quickplayRating,
+          quickplayGamesPlayed: updatedO.quickplayGamesPlayed,
+          updatedAt: now(),
+        })
+        .where(eq(profilesTable.id, updatedO.id));
     }
 
     statsApplied = true;
@@ -1104,26 +1189,32 @@ export async function ensureViewerUser(viewer: AppViewer) {
       existing.avatarUrl !== viewer.avatarUrl ||
       existing.displayName !== existing.username
     ) {
-      await db.update(profilesTable).set({
-        email: viewer.email,
-        avatarUrl: viewer.avatarUrl,
-        displayName: existing.username,
-        updatedAt: now(),
-      }).where(eq(profilesTable.id, viewer.id));
+      await db
+        .update(profilesTable)
+        .set({
+          email: viewer.email,
+          avatarUrl: viewer.avatarUrl,
+          displayName: existing.username,
+          updatedAt: now(),
+        })
+        .where(eq(profilesTable.id, viewer.id));
     }
 
     return rowToProfile({ ...existing, displayName: existing.username });
   }
 
   const username = sanitizeUsername(viewer.username);
-  const inserted = await db.insert(profilesTable).values({
-    id: viewer.id,
-    username,
-    displayName: username,
-    email: viewer.email,
-    avatarUrl: viewer.avatarUrl,
-    hasSeenForcedTargetHint: viewer.hasSeenForcedTargetHint ? 1 : 0,
-  }).returning();
+  const inserted = await db
+    .insert(profilesTable)
+    .values({
+      id: viewer.id,
+      username,
+      displayName: username,
+      email: viewer.email,
+      avatarUrl: viewer.avatarUrl,
+      hasSeenForcedTargetHint: viewer.hasSeenForcedTargetHint ? 1 : 0,
+    })
+    .returning();
 
   return rowToProfile(inserted[0]);
 }
@@ -1155,12 +1246,13 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
   return {
     viewer,
     activeGame: activeAggregate,
-    quickplay: activeGame?.mode === "quickplay"
-      ? buildQuickplayState({
-          game: activeGame,
-          aggregate: activeAggregate,
-        })
-      : quickplay,
+    quickplay:
+      activeGame?.mode === "quickplay"
+        ? buildQuickplayState({
+            game: activeGame,
+            aggregate: activeAggregate,
+          })
+        : quickplay,
     incomingChallenges: await listChallengesForUser(viewer.id, "incoming"),
     outgoingChallenges: await listChallengesForUser(viewer.id, "outgoing"),
     presets: PRESETS,
@@ -1204,7 +1296,11 @@ export async function joinQuickplay(viewer: AppViewer, presetId: TimePresetId) {
     activateQuickplayGame(candidates[0], candidates[0].creatorId, viewer.id);
     await saveGame(requireDb(), candidates[0]);
     const users = await getUserMap([candidates[0].playerXId, candidates[0].playerOId]);
-    const aggregate = buildGameAggregate(candidates[0], await loadMovesForGame(candidates[0].id), users);
+    const aggregate = buildGameAggregate(
+      candidates[0],
+      await loadMovesForGame(candidates[0].id),
+      users,
+    );
     return buildQuickplayState({ game: candidates[0], aggregate });
   }
 
@@ -1224,7 +1320,11 @@ export async function leaveQuickplay(viewer: AppViewer) {
   return buildQuickplayState();
 }
 
-export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
+export async function createChallenge(
+  viewer: AppViewer,
+  opponentUsername: string,
+  presetId: TimePresetId,
+) {
   await ensureViewerUser(viewer);
   await expireChallenges();
   await assertNoLiveCommitments(viewer.id);
@@ -1282,10 +1382,13 @@ export async function acceptChallenge(viewer: AppViewer, challengeId: string) {
     throw new AppError("This challenge is no longer available.", 409);
   }
   if (challenge.expiresAt.getTime() <= now().getTime()) {
-    await db.update(challengesTable).set({
-      status: "expired",
-      updatedAt: now(),
-    }).where(eq(challengesTable.id, challenge.id));
+    await db
+      .update(challengesTable)
+      .set({
+        status: "expired",
+        updatedAt: now(),
+      })
+      .where(eq(challengesTable.id, challenge.id));
     throw new AppError("This challenge is no longer available.", 409);
   }
 
@@ -1334,21 +1437,27 @@ export async function acceptChallenge(viewer: AppViewer, challengeId: string) {
       finishedAt: game.finishedAt,
     });
 
-    await tx.update(challengesTable).set({
-      status: "accepted",
-      gameId: game.id,
-      updatedAt: now(),
-    }).where(eq(challengesTable.id, challenge.id));
+    await tx
+      .update(challengesTable)
+      .set({
+        status: "accepted",
+        gameId: game.id,
+        updatedAt: now(),
+      })
+      .where(eq(challengesTable.id, challenge.id));
   });
 
   const users = await getUserMap([game.playerXId, game.playerOId]);
   return {
-    challenge: buildChallengeAggregate({
-      ...challenge,
-      status: "accepted",
-      gameId: game.id,
-      updatedAt: now(),
-    }, users),
+    challenge: buildChallengeAggregate(
+      {
+        ...challenge,
+        status: "accepted",
+        gameId: game.id,
+        updatedAt: now(),
+      },
+      users,
+    ),
     game: buildGameAggregate(game, [], users),
   };
 }
@@ -1375,10 +1484,13 @@ export async function declineChallenge(viewer: AppViewer, challengeId: string) {
   }
 
   const updatedAt = now();
-  await db.update(challengesTable).set({
-    status: "declined",
-    updatedAt,
-  }).where(eq(challengesTable.id, challenge.id));
+  await db
+    .update(challengesTable)
+    .set({
+      status: "declined",
+      updatedAt,
+    })
+    .where(eq(challengesTable.id, challenge.id));
 
   const users = await getUserMap([challenge.fromUserId, challenge.toUserId]);
   return buildChallengeAggregate({ ...challenge, status: "declined", updatedAt }, users);
@@ -1545,36 +1657,38 @@ export async function rematchGame(viewer: AppViewer, gameId: string) {
     challengeId: null,
   });
 
-  await requireDb().insert(gamesTable).values({
-    id: rematch.id,
-    roomId: rematch.roomId,
-    inviteUrl: rematch.inviteUrl,
-    mode: rematch.mode,
-    status: rematch.status,
-    rated: rematch.rated ? 1 : 0,
-    presetId: rematch.presetId,
-    creatorId: rematch.creatorId,
-    playerXId: rematch.playerXId,
-    playerOId: rematch.playerOId,
-    starterId: rematch.starterId,
-    currentTurnId: rematch.currentTurnId,
-    winnerId: rematch.winnerId,
-    challengeId: rematch.challengeId,
-    disconnectPlayerId: rematch.disconnectPlayerId,
-    disconnectExpiresAt: rematch.disconnectExpiresAt,
-    playerXLastSeenAt: rematch.playerXLastSeenAt,
-    playerOLastSeenAt: rematch.playerOLastSeenAt,
-    initialMs: rematch.initialMs,
-    incrementMs: rematch.incrementMs,
-    playerXRemainingMs: rematch.playerXRemainingMs,
-    playerORemainingMs: rematch.playerORemainingMs,
-    turnStartedAt: rematch.turnStartedAt,
-    currentStateJson: rematch.state,
-    statsFinalized: rematch.statsFinalized ? 1 : 0,
-    createdAt: rematch.createdAt,
-    updatedAt: rematch.updatedAt,
-    finishedAt: rematch.finishedAt,
-  });
+  await requireDb()
+    .insert(gamesTable)
+    .values({
+      id: rematch.id,
+      roomId: rematch.roomId,
+      inviteUrl: rematch.inviteUrl,
+      mode: rematch.mode,
+      status: rematch.status,
+      rated: rematch.rated ? 1 : 0,
+      presetId: rematch.presetId,
+      creatorId: rematch.creatorId,
+      playerXId: rematch.playerXId,
+      playerOId: rematch.playerOId,
+      starterId: rematch.starterId,
+      currentTurnId: rematch.currentTurnId,
+      winnerId: rematch.winnerId,
+      challengeId: rematch.challengeId,
+      disconnectPlayerId: rematch.disconnectPlayerId,
+      disconnectExpiresAt: rematch.disconnectExpiresAt,
+      playerXLastSeenAt: rematch.playerXLastSeenAt,
+      playerOLastSeenAt: rematch.playerOLastSeenAt,
+      initialMs: rematch.initialMs,
+      incrementMs: rematch.incrementMs,
+      playerXRemainingMs: rematch.playerXRemainingMs,
+      playerORemainingMs: rematch.playerORemainingMs,
+      turnStartedAt: rematch.turnStartedAt,
+      currentStateJson: rematch.state,
+      statsFinalized: rematch.statsFinalized ? 1 : 0,
+      createdAt: rematch.createdAt,
+      updatedAt: rematch.updatedAt,
+      finishedAt: rematch.finishedAt,
+    });
 
   const users = await getUserMap([rematch.playerXId, rematch.playerOId]);
   return buildGameAggregate(rematch, [], users);

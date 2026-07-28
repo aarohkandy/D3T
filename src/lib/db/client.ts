@@ -9,9 +9,7 @@ import { getDatabaseUrlDiagnostic, normalizeDatabaseUrl } from "@/lib/db/url";
 
 declare global {
   var __d3tSql: postgres.Sql | undefined;
-  var __d3tDb:
-    | ReturnType<typeof drizzle<typeof schema>>
-    | undefined;
+  var __d3tDb: ReturnType<typeof drizzle<typeof schema>> | undefined;
 }
 
 export function getDb() {
@@ -46,7 +44,11 @@ function getSqlClient() {
     if (process.env.D3T_DB_DEBUG === "true") {
       console.info(
         "[d3t db] initializing postgres client",
-        getDatabaseUrlDiagnostic(process.env.DATABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_POOLER_HOST),
+        getDatabaseUrlDiagnostic(
+          process.env.DATABASE_URL,
+          process.env.NEXT_PUBLIC_SUPABASE_URL,
+          process.env.SUPABASE_POOLER_HOST,
+        ),
       );
     }
 
@@ -79,7 +81,8 @@ function serializeDbError(error: unknown) {
     name: error.name,
     message: error.message,
     code: typeof details.code === "string" ? details.code : null,
-    errno: typeof details.errno === "string" || typeof details.errno === "number" ? details.errno : null,
+    errno:
+      typeof details.errno === "string" || typeof details.errno === "number" ? details.errno : null,
     severity: typeof details.severity === "string" ? details.severity : null,
     hint: typeof details.hint === "string" ? details.hint : null,
   };
@@ -111,11 +114,13 @@ export async function runDbDiagnostic() {
   const startedAt = Date.now();
 
   try {
-    const ping = await sql<{
-      database_name: string;
-      current_user: string;
-      server_version: string;
-    }[]>`
+    const ping = await sql<
+      {
+        database_name: string;
+        current_user: string;
+        server_version: string;
+      }[]
+    >`
       select
         current_database() as database_name,
         current_user,

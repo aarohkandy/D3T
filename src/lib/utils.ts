@@ -17,9 +17,7 @@ export function formatRelativeTime(value: string | Date | null | undefined) {
 }
 
 export function titleCase(value: string) {
-  return value
-    .replace(/[-_]/g, " ")
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return value.replace(/[-_]/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export function assertNever(value: never): never {

@@ -73,10 +73,14 @@ a {
 
 @keyframes d3t-table-sweep {
   0% {
-    background-position: 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0;
   }
   100% {
-    background-position: 96px 0, -72px 0;
+    background-position:
+      96px 0,
+      -72px 0;
   }
 }
 
@@ -135,23 +139,61 @@ a {
 
 .d3t-play-screen::before {
   background:
-    linear-gradient(90deg, transparent 0 18px, rgba(69, 119, 204, 0.1) 18px 19px, transparent 19px 96px),
-    linear-gradient(0deg, transparent 0 26px, rgba(255, 255, 255, 0.2) 26px 27px, transparent 27px 72px);
-  mask-image: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.7) 12%, rgba(0, 0, 0, 0.28) 62%, transparent);
+    linear-gradient(
+      90deg,
+      transparent 0 18px,
+      rgba(69, 119, 204, 0.1) 18px 19px,
+      transparent 19px 96px
+    ),
+    linear-gradient(
+      0deg,
+      transparent 0 26px,
+      rgba(255, 255, 255, 0.2) 26px 27px,
+      transparent 27px 72px
+    );
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.7) 12%,
+    rgba(0, 0, 0, 0.28) 62%,
+    transparent
+  );
   animation: d3t-table-sweep 18s linear infinite;
 }
 
 .d3t-play-screen::after {
   background:
-    linear-gradient(180deg, rgba(13, 18, 22, 0.13), transparent 18%, transparent 82%, rgba(13, 18, 22, 0.1)),
-    linear-gradient(90deg, rgba(255, 92, 124, 0.14), transparent 20%, transparent 80%, rgba(69, 119, 204, 0.14));
+    linear-gradient(
+      180deg,
+      rgba(13, 18, 22, 0.13),
+      transparent 18%,
+      transparent 82%,
+      rgba(13, 18, 22, 0.1)
+    ),
+    linear-gradient(
+      90deg,
+      rgba(255, 92, 124, 0.14),
+      transparent 20%,
+      transparent 80%,
+      rgba(69, 119, 204, 0.14)
+    );
   opacity: 0.42;
 }
 
 .d3t-play-screen__texture {
   background:
-    linear-gradient(90deg, transparent 0 49.5%, rgba(13, 18, 22, 0.16) 49.5% 50.5%, transparent 50.5%),
-    linear-gradient(180deg, transparent 0 49.5%, rgba(255, 252, 240, 0.32) 49.5% 50.5%, transparent 50.5%);
+    linear-gradient(
+      90deg,
+      transparent 0 49.5%,
+      rgba(13, 18, 22, 0.16) 49.5% 50.5%,
+      transparent 50.5%
+    ),
+    linear-gradient(
+      180deg,
+      transparent 0 49.5%,
+      rgba(255, 252, 240, 0.32) 49.5% 50.5%,
+      transparent 50.5%
+    );
   opacity: 0.44;
 }
 
@@ -167,7 +209,13 @@ a {
   border: 1px solid rgba(20, 38, 42, 0.28);
   border-radius: 24px;
   background:
-    linear-gradient(90deg, rgba(15, 23, 28, 0.08), transparent 13%, transparent 87%, rgba(15, 23, 28, 0.08)),
+    linear-gradient(
+      90deg,
+      rgba(15, 23, 28, 0.08),
+      transparent 13%,
+      transparent 87%,
+      rgba(15, 23, 28, 0.08)
+    ),
     linear-gradient(180deg, rgba(255, 252, 241, 0.78), rgba(236, 247, 240, 0.66));
   box-shadow:
     0 32px 80px rgba(26, 36, 36, 0.2),
@@ -192,7 +240,13 @@ a {
 
 .d3t-match-shell::after {
   background:
-    linear-gradient(90deg, rgba(255, 92, 124, 0.12), transparent 24%, transparent 76%, rgba(69, 119, 204, 0.12)),
+    linear-gradient(
+      90deg,
+      rgba(255, 92, 124, 0.12),
+      transparent 24%,
+      transparent 76%,
+      rgba(69, 119, 204, 0.12)
+    ),
     repeating-linear-gradient(90deg, transparent 0 18px, rgba(15, 23, 28, 0.035) 18px 19px);
   opacity: 0.5;
   mix-blend-mode: multiply;
@@ -226,7 +280,12 @@ a {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(115deg, transparent 0 36%, rgba(255, 255, 255, 0.32) 36% 38%, transparent 38% 100%),
+    linear-gradient(
+      115deg,
+      transparent 0 36%,
+      rgba(255, 255, 255, 0.32) 36% 38%,
+      transparent 38% 100%
+    ),
     repeating-linear-gradient(90deg, transparent 0 34px, rgba(21, 32, 35, 0.045) 34px 35px);
   opacity: 0.62;
 }
@@ -239,7 +298,11 @@ a {
 .d3t-player-card.is-active {
   border-color: color-mix(in srgb, var(--player-color) 54%, rgba(21, 32, 35, 0.18));
   background:
-    linear-gradient(90deg, color-mix(in srgb, var(--player-color) 18%, transparent), transparent 21%),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--player-color) 18%, transparent),
+      transparent 21%
+    ),
     linear-gradient(135deg, rgba(255, 255, 250, 0.95), rgba(235, 251, 245, 0.82));
   box-shadow:
     0 18px 42px rgba(24, 35, 34, 0.12),
@@ -390,7 +453,13 @@ a {
   border: 1px solid rgba(21, 32, 35, 0.14);
   border-radius: 22px;
   background:
-    linear-gradient(90deg, rgba(255, 92, 124, 0.06), transparent 16%, transparent 84%, rgba(69, 119, 204, 0.08)),
+    linear-gradient(
+      90deg,
+      rgba(255, 92, 124, 0.06),
+      transparent 16%,
+      transparent 84%,
+      rgba(69, 119, 204, 0.08)
+    ),
     repeating-linear-gradient(135deg, rgba(21, 32, 35, 0.032) 0 1px, transparent 1px 16px),
     rgba(255, 253, 246, 0.58);
   box-shadow:
@@ -409,8 +478,20 @@ a {
 .d3t-board-stage::before {
   border-radius: inherit;
   background:
-    linear-gradient(90deg, rgba(69, 119, 204, 0.12), transparent 24%, transparent 76%, rgba(255, 92, 124, 0.1)),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.14), transparent 38%, transparent 72%, rgba(69, 119, 204, 0.08));
+    linear-gradient(
+      90deg,
+      rgba(69, 119, 204, 0.12),
+      transparent 24%,
+      transparent 76%,
+      rgba(255, 92, 124, 0.1)
+    ),
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.14),
+      transparent 38%,
+      transparent 72%,
+      rgba(69, 119, 204, 0.08)
+    );
   opacity: 0.42;
 }
 
@@ -438,14 +519,12 @@ a {
 
 .d3t-cell {
   border-color: rgba(25, 35, 36, 0.18);
-  background:
-    linear-gradient(135deg, rgba(255, 252, 242, 0.5), rgba(235, 244, 238, 0.3));
+  background: linear-gradient(135deg, rgba(255, 252, 242, 0.5), rgba(235, 244, 238, 0.3));
 }
 
 .d3t-cell.is-legal {
   animation: d3t-legal-breathe 2.8s ease-in-out infinite;
-  background:
-    linear-gradient(135deg, rgba(69, 119, 204, 0.26), rgba(255, 255, 255, 0.16));
+  background: linear-gradient(135deg, rgba(69, 119, 204, 0.26), rgba(255, 255, 255, 0.16));
 }
 
 .d3t-cell.is-forced {
@@ -467,8 +546,7 @@ a {
 
 .d3t-cell.is-clickable:hover {
   z-index: 3;
-  background:
-    linear-gradient(135deg, rgba(69, 119, 204, 0.36), rgba(255, 255, 255, 0.22));
+  background: linear-gradient(135deg, rgba(69, 119, 204, 0.36), rgba(255, 255, 255, 0.22));
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.52),
     0 0 20px rgba(69, 119, 204, 0.22);
@@ -500,8 +578,7 @@ a {
 
 .d3t-cell.is-fresh {
   animation: d3t-fresh-cell 720ms ease-out;
-  background:
-    linear-gradient(135deg, rgba(69, 119, 204, 0.28), rgba(255, 255, 255, 0.2));
+  background: linear-gradient(135deg, rgba(69, 119, 204, 0.28), rgba(255, 255, 255, 0.2));
 }
 
 @keyframes board-drift {

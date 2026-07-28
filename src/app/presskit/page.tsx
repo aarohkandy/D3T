@@ -34,7 +34,9 @@ export default function PresskitPage() {
               D3T launch copy and brand assets.
             </h1>
             <p className="max-w-3xl text-lg leading-8 text-[color:var(--color-ink-soft)]">
-              D3T is a polished web home for three-layer Grandfather Tic-Tac-Toe, built for challenge-first play and persistent game state. Use this page for launch coverage, store listings, or partner references.
+              D3T is a polished web home for three-layer Grandfather Tic-Tac-Toe, built for
+              challenge-first play and persistent game state. Use this page for launch coverage,
+              store listings, or partner references.
             </p>
           </div>
 
@@ -43,7 +45,9 @@ export default function PresskitPage() {
               Boilerplate
             </p>
             <p className="mt-3 text-base leading-7 text-[color:var(--color-ink-soft)]">
-              D3T is a three-layer Grandfather Tic-Tac-Toe platform for players who want thoughtful turn-based matches on the web, with modern account, challenge, and persistence features.
+              D3T is a three-layer Grandfather Tic-Tac-Toe platform for players who want thoughtful
+              turn-based matches on the web, with modern account, challenge, and persistence
+              features.
             </p>
           </div>
         </header>
@@ -57,9 +61,7 @@ export default function PresskitPage() {
               <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[color:var(--color-ink-muted)]">
                 {label}
               </p>
-              <p className="mt-2 text-base leading-7 text-[color:var(--color-ink-soft)]">
-                {value}
-              </p>
+              <p className="mt-2 text-base leading-7 text-[color:var(--color-ink-soft)]">{value}</p>
             </div>
           ))}
         </section>
@@ -95,7 +97,8 @@ export default function PresskitPage() {
               <li>Keep the logo clear of heavy filters, borders, or other marks.</li>
             </ul>
             <p className="text-base leading-7 text-[color:var(--color-ink-soft)]">
-              If you need a larger preview asset, the OG image is sized for social and embed use. It inherits the same launch palette and can be referenced directly from this site.
+              If you need a larger preview asset, the OG image is sized for social and embed use. It
+              inherits the same launch palette and can be referenced directly from this site.
             </p>
           </div>
         </section>
@@ -105,7 +108,9 @@ export default function PresskitPage() {
             Suggested launch copy
           </h2>
           <p className="max-w-4xl text-base leading-7 text-[color:var(--color-ink-soft)]">
-            D3T brings three-layer Grandfather Tic-Tac-Toe to the web with persistent matches, challenge-first gameplay, and a launch-ready product stack built on Next.js, Supabase, Postgres, and Vercel.
+            D3T brings three-layer Grandfather Tic-Tac-Toe to the web with persistent matches,
+            challenge-first gameplay, and a launch-ready product stack built on Next.js, Supabase,
+            Postgres, and Vercel.
           </p>
         </section>
 

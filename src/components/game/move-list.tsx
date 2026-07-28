@@ -18,7 +18,9 @@ export function MoveList({ moves }: { moves: MoveRecord[] }) {
                 key={move.id}
                 className="flex items-center justify-between rounded-xl border border-[color:var(--color-line-soft)] bg-[rgba(255,251,245,0.72)] px-3 py-2 text-sm"
               >
-                <span className="font-mono text-[color:var(--color-ink-muted)]">{move.moveNumber}.</span>
+                <span className="font-mono text-[color:var(--color-ink-muted)]">
+                  {move.moveNumber}.
+                </span>
                 <span className="font-semibold text-[color:var(--color-ink)]">
                   {move.move.t1},{move.move.t2},{move.move.t3}
                 </span>

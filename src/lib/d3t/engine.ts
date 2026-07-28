@@ -1,4 +1,4 @@
-import { D3T_INDICES } from './types.ts';
+import { D3T_INDICES } from "./types.ts";
 import type {
   D3TApplyMoveResult,
   D3TBoardStatus,
@@ -15,7 +15,7 @@ import type {
   D3TReplay,
   D3TScore,
   D3TTopBoardState,
-} from './types.ts';
+} from "./types.ts";
 
 export type {
   D3TBoardOwner,
@@ -26,7 +26,7 @@ export type {
   D3TMove,
   D3TPlayer,
   D3TGameOutcome as GameOutcome,
-} from './types.ts';
+} from "./types.ts";
 
 const BOARD_SIZE = 9;
 
@@ -35,13 +35,13 @@ export function isD3TIndex(value: number): value is D3TIndex {
 }
 
 export function oppositeMark(mark: D3TMark): D3TMark {
-  return mark === 'X' ? 'O' : 'X';
+  return mark === "X" ? "O" : "X";
 }
 
 export function createEmptyLeafBoard(): D3TLeafBoardState {
   return {
     cells: Array.from({ length: BOARD_SIZE }, () => null),
-    status: 'open',
+    status: "open",
     winner: null,
   };
 }
@@ -49,7 +49,7 @@ export function createEmptyLeafBoard(): D3TLeafBoardState {
 export function createEmptyMiddleBoard(): D3TMiddleBoardState {
   return {
     boards: Array.from({ length: BOARD_SIZE }, () => createEmptyLeafBoard()),
-    status: 'open',
+    status: "open",
     winner: null,
   };
 }
@@ -57,12 +57,12 @@ export function createEmptyMiddleBoard(): D3TMiddleBoardState {
 export function createEmptyTopBoard(): D3TTopBoardState {
   return {
     boards: Array.from({ length: BOARD_SIZE }, () => createEmptyMiddleBoard()),
-    status: 'open',
+    status: "open",
     winner: null,
   };
 }
 
-export function createInitialGameState(starter: D3TMark = 'X'): D3TGameState {
+export function createInitialGameState(starter: D3TMark = "X"): D3TGameState {
   const state: D3TGameState = {
     board: createEmptyTopBoard(),
     currentPlayer: starter,
@@ -70,8 +70,8 @@ export function createInitialGameState(starter: D3TMark = 'X'): D3TGameState {
     starter,
     nextTarget: null,
     nextForced: null,
-    status: 'active',
-    outcome: 'active',
+    status: "active",
+    outcome: "active",
     winner: null,
     topBoardOwners: Array.from({ length: BOARD_SIZE }, () => null),
     middleBoardSummaries: [],
@@ -85,7 +85,7 @@ export function createInitialGameState(starter: D3TMark = 'X'): D3TGameState {
 }
 
 export function createRandomStarter(rng: () => number = Math.random): D3TMark {
-  return rng() < 0.5 ? 'X' : 'O';
+  return rng() < 0.5 ? "X" : "O";
 }
 
 function toOffset(index: D3TIndex): number {
@@ -116,17 +116,20 @@ function cloneTopBoard(board: D3TTopBoardState): D3TTopBoardState {
   };
 }
 
-function deriveMiddleBoardSummary(board: D3TMiddleBoardState, index: D3TIndex): D3TMiddleBoardSummary {
+function deriveMiddleBoardSummary(
+  board: D3TMiddleBoardState,
+  index: D3TIndex,
+): D3TMiddleBoardSummary {
   return {
     index,
     status: board.status,
     winner: board.winner,
-    cellOwners: board.boards.map((child) => (child.status === 'won' ? child.winner : null)),
+    cellOwners: board.boards.map((child) => (child.status === "won" ? child.winner : null)),
   };
 }
 
 function deriveTopBoardOwners(board: D3TTopBoardState): Array<D3TMark | null> {
-  return board.boards.map((child) => (child.status === 'won' ? child.winner : null));
+  return board.boards.map((child) => (child.status === "won" ? child.winner : null));
 }
 
 function refreshDerivedGameStateFields(state: D3TGameState): void {
@@ -165,7 +168,7 @@ export function cloneGameState(state: D3TGameState): D3TGameState {
             ? { ...state.lastMove.resultingNextForced }
             : null,
           resultingScore: { ...state.lastMove.resultingScore },
-      }
+        }
       : null,
   };
 
@@ -198,63 +201,63 @@ function lineWinner(values: Array<D3TMark | null>): D3TMark | null {
 function updateLeafBoard(board: D3TLeafBoardState): void {
   const winner = lineWinner(board.cells);
   if (winner) {
-    board.status = 'won';
+    board.status = "won";
     board.winner = winner;
     return;
   }
 
   if (board.cells.every((cell) => cell !== null)) {
-    board.status = 'draw';
+    board.status = "draw";
     board.winner = null;
     return;
   }
 
-  board.status = 'open';
+  board.status = "open";
   board.winner = null;
 }
 
 function updateMiddleBoard(board: D3TMiddleBoardState): void {
-  const childOwners = board.boards.map((child) => (child.status === 'won' ? child.winner : null));
+  const childOwners = board.boards.map((child) => (child.status === "won" ? child.winner : null));
   const winner = lineWinner(childOwners);
   if (winner) {
-    board.status = 'won';
+    board.status = "won";
     board.winner = winner;
     return;
   }
 
-  if (board.boards.every((child) => child.status !== 'open')) {
-    board.status = 'draw';
+  if (board.boards.every((child) => child.status !== "open")) {
+    board.status = "draw";
     board.winner = null;
     return;
   }
 
-  board.status = 'open';
+  board.status = "open";
   board.winner = null;
 }
 
 function updateTopBoard(board: D3TTopBoardState): void {
-  const childOwners = board.boards.map((child) => (child.status === 'won' ? child.winner : null));
+  const childOwners = board.boards.map((child) => (child.status === "won" ? child.winner : null));
   const winner = lineWinner(childOwners);
   if (winner) {
-    board.status = 'won';
+    board.status = "won";
     board.winner = winner;
     return;
   }
 
-  if (board.boards.every((child) => child.status !== 'open')) {
-    board.status = 'draw';
+  if (board.boards.every((child) => child.status !== "open")) {
+    board.status = "draw";
     board.winner = null;
     return;
   }
 
-  board.status = 'open';
+  board.status = "open";
   board.winner = null;
 }
 
 export function scoreTopBoard(board: D3TTopBoardState): D3TScore {
   const score: D3TScore = { X: 0, O: 0 };
   for (const child of board.boards) {
-    if (child.status === 'won' && child.winner) {
+    if (child.status === "won" && child.winner) {
       score[child.winner] += 1;
     }
   }
@@ -263,17 +266,17 @@ export function scoreTopBoard(board: D3TTopBoardState): D3TScore {
 
 export function scoreWinner(score: D3TScore): D3TMark | null {
   if (score.X > score.O) {
-    return 'X';
+    return "X";
   }
   if (score.O > score.X) {
-    return 'O';
+    return "O";
   }
   return null;
 }
 
 export function isLeafBoardPlayable(state: D3TGameState, t1: D3TIndex, t2: D3TIndex): boolean {
   const middle = state.board.boards[toOffset(t1)];
-  return middle.status === 'open' && middle.boards[toOffset(t2)].status === 'open';
+  return middle.status === "open" && middle.boards[toOffset(t2)].status === "open";
 }
 
 export function getLeafBoard(state: D3TGameState, t1: D3TIndex, t2: D3TIndex): D3TLeafBoardState {
@@ -290,7 +293,7 @@ export function getForcedBoard(state: D3TGameState): D3TForcedBoard | null {
 }
 
 export function generateLegalMoves(state: D3TGameState): D3TMove[] {
-  if (state.status !== 'active') {
+  if (state.status !== "active") {
     return [];
   }
 
@@ -299,7 +302,7 @@ export function generateLegalMoves(state: D3TGameState): D3TMove[] {
 
   const pushMovesForBoard = (t1: D3TIndex, t2: D3TIndex): void => {
     const leaf = getLeafBoard(state, t1, t2);
-    if (leaf.status !== 'open') {
+    if (leaf.status !== "open") {
       return;
     }
 
@@ -317,7 +320,7 @@ export function generateLegalMoves(state: D3TGameState): D3TMove[] {
 
   for (const t1 of D3T_INDICES) {
     const middle = state.board.boards[toOffset(t1)];
-    if (middle.status !== 'open') {
+    if (middle.status !== "open") {
       continue;
     }
 
@@ -332,12 +335,12 @@ export function generateLegalMoves(state: D3TGameState): D3TMove[] {
 export const getLegalMoves = generateLegalMoves;
 
 export function validateMove(state: D3TGameState, move: D3TMove): D3TMoveValidation {
-  if (state.status !== 'active') {
-    return { ok: false, reason: 'game-finished' };
+  if (state.status !== "active") {
+    return { ok: false, reason: "game-finished" };
   }
 
   if (!isD3TIndex(move.t1) || !isD3TIndex(move.t2) || !isD3TIndex(move.t3)) {
-    return { ok: false, reason: 'out-of-range' };
+    return { ok: false, reason: "out-of-range" };
   }
 
   if (move.t1 !== undefined && move.t2 !== undefined && move.t3 !== undefined) {
@@ -346,16 +349,16 @@ export function validateMove(state: D3TGameState, move: D3TMove): D3TMoveValidat
 
   const forced = getForcedBoard(state);
   if (forced && (move.t1 !== forced.t1 || move.t2 !== forced.t2)) {
-    return { ok: false, reason: 'forced-board' };
+    return { ok: false, reason: "forced-board" };
   }
 
   if (!isLeafBoardPlayable(state, move.t1, move.t2)) {
-    return { ok: false, reason: 'board-closed' };
+    return { ok: false, reason: "board-closed" };
   }
 
   const leaf = getLeafBoard(state, move.t1, move.t2);
   if (leaf.cells[toOffset(move.t3)] !== null) {
-    return { ok: false, reason: 'cell-occupied' };
+    return { ok: false, reason: "cell-occupied" };
   }
 
   return { ok: true };
@@ -381,21 +384,23 @@ export function applyMove(state: D3TGameState, move: D3TMove): D3TApplyMoveResul
   updateTopBoard(nextState.board);
   nextState.score = scoreTopBoard(nextState.board);
 
-  if (nextState.board.status === 'won') {
-    nextState.status = 'finished';
-    nextState.outcome = 'won';
+  if (nextState.board.status === "won") {
+    nextState.status = "finished";
+    nextState.outcome = "won";
     nextState.winner = nextState.board.winner;
     nextState.nextForced = null;
-  } else if (nextState.board.status === 'draw') {
-    nextState.status = 'finished';
+  } else if (nextState.board.status === "draw") {
+    nextState.status = "finished";
     nextState.winner = scoreWinner(nextState.score);
-    nextState.outcome = nextState.winner ? 'won' : 'draw';
+    nextState.outcome = nextState.winner ? "won" : "draw";
     nextState.nextForced = null;
   } else {
     const nextForced = { t1: move.t2, t2: move.t3 };
-    nextState.nextForced = isLeafBoardPlayable(nextState, nextForced.t1, nextForced.t2) ? nextForced : null;
-    nextState.status = 'active';
-    nextState.outcome = 'active';
+    nextState.nextForced = isLeafBoardPlayable(nextState, nextForced.t1, nextForced.t2)
+      ? nextForced
+      : null;
+    nextState.status = "active";
+    nextState.outcome = "active";
     nextState.winner = null;
   }
 
@@ -415,18 +420,25 @@ export function applyMove(state: D3TGameState, move: D3TMove): D3TApplyMoveResul
   return { state: nextState, move: nextState.lastMove };
 }
 
-export function applyMoveToState(state: D3TGameState, move: D3TMove, player: D3TMark = state.turn): D3TGameState {
+export function applyMoveToState(
+  state: D3TGameState,
+  move: D3TMove,
+  player: D3TMark = state.turn,
+): D3TGameState {
   if (player !== state.turn) {
     throw new Error(`Illegal D3T move: wrong-turn`);
   }
   return applyMove(state, move).state;
 }
 
-export function createRematchState(startingPlayer: D3TMark = 'X'): D3TGameState {
+export function createRematchState(startingPlayer: D3TMark = "X"): D3TGameState {
   return createInitialGameState(startingPlayer);
 }
 
-export function resetGameState(state: D3TGameState, starter: D3TMark = oppositeMark(state.starter)): D3TGameState {
+export function resetGameState(
+  state: D3TGameState,
+  starter: D3TMark = oppositeMark(state.starter),
+): D3TGameState {
   return createRematchState(starter);
 }
 
@@ -476,19 +488,19 @@ export function recomputeGameState(state: D3TGameState): D3TGameState {
   }
   updateTopBoard(next.board);
   next.score = scoreTopBoard(next.board);
-  if (next.board.status === 'won') {
-    next.status = 'finished';
-    next.outcome = 'won';
+  if (next.board.status === "won") {
+    next.status = "finished";
+    next.outcome = "won";
     next.winner = next.board.winner;
     next.nextForced = null;
-  } else if (next.board.status === 'draw') {
-    next.status = 'finished';
+  } else if (next.board.status === "draw") {
+    next.status = "finished";
     next.winner = scoreWinner(next.score);
-    next.outcome = next.winner ? 'won' : 'draw';
+    next.outcome = next.winner ? "won" : "draw";
     next.nextForced = null;
   } else {
-    next.status = 'active';
-    next.outcome = 'active';
+    next.status = "active";
+    next.outcome = "active";
     next.winner = null;
     next.nextForced = getForcedBoard(next);
   }

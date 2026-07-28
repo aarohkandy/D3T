@@ -14,7 +14,11 @@ function getSupabaseProjectRef(supabaseUrl?: string | null) {
   }
 }
 
-export function normalizeDatabaseUrl(rawUrl: string, supabaseUrl?: string | null, poolerHost?: string | null) {
+export function normalizeDatabaseUrl(
+  rawUrl: string,
+  supabaseUrl?: string | null,
+  poolerHost?: string | null,
+) {
   try {
     const url = new URL(rawUrl);
     const projectRef = getSupabaseProjectRef(supabaseUrl);
@@ -43,7 +47,11 @@ export function normalizeDatabaseUrl(rawUrl: string, supabaseUrl?: string | null
   }
 }
 
-export function getDatabaseUrlDiagnostic(rawUrl: string, supabaseUrl?: string | null, poolerHost?: string | null) {
+export function getDatabaseUrlDiagnostic(
+  rawUrl: string,
+  supabaseUrl?: string | null,
+  poolerHost?: string | null,
+) {
   try {
     const original = new URL(rawUrl);
     const normalized = new URL(normalizeDatabaseUrl(rawUrl, supabaseUrl, poolerHost));

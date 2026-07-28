@@ -239,8 +239,8 @@ function resolveQuickplayRating(userId?: string | null) {
 
 function pickSeatOrder(gameId: string, firstPlayerId: string, secondPlayerId: string) {
   return createRandomStarter(() => Math.random()) === "X"
-    ? [firstPlayerId, secondPlayerId] as const
-    : [secondPlayerId, firstPlayerId] as const;
+    ? ([firstPlayerId, secondPlayerId] as const)
+    : ([secondPlayerId, firstPlayerId] as const);
 }
 
 function createPendingQuickplayGame(creatorId: string, presetId: TimePresetId) {
@@ -312,9 +312,15 @@ function activateQuickplayGame(game: PersistedGame, firstPlayerId: string, secon
 function getPendingQuickplayForUser(userId: string) {
   const store = getMemoryStore();
 
-  return Array.from(store.games.values())
-    .filter((game) => isQuickplayQueueGame(game) && [game.playerXId, game.playerOId, game.creatorId].includes(userId))
-    .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())[0] ?? null;
+  return (
+    Array.from(store.games.values())
+      .filter(
+        (game) =>
+          isQuickplayQueueGame(game) &&
+          [game.playerXId, game.playerOId, game.creatorId].includes(userId),
+      )
+      .sort((left, right) => left.createdAt.getTime() - right.createdAt.getTime())[0] ?? null
+  );
 }
 
 function listQuickplayCandidates(userId: string, presetId: TimePresetId) {
@@ -331,11 +337,14 @@ function getBotThinkDeadline(game: PersistedGame) {
   }
 
   const rating = resolveQuickplayRating(game.currentTurnId);
-  return game.turnStartedAt.getTime() + getBotThinkTimeMs({
-    gameId: game.id,
-    moveCount: game.state.moveCount,
-    rating,
-  });
+  return (
+    game.turnStartedAt.getTime() +
+    getBotThinkTimeMs({
+      gameId: game.id,
+      moveCount: game.state.moveCount,
+      rating,
+    })
+  );
 }
 
 function createClockState(game: PersistedGame, at = now()): GameClockState {
@@ -396,9 +405,11 @@ function resolveDisconnectState(game: PersistedGame, at = now()) {
     return;
   }
 
-  const xMissing = !game.playerXLastSeenAt ||
+  const xMissing =
+    !game.playerXLastSeenAt ||
     at.getTime() - game.playerXLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
-  const oMissing = !game.playerOLastSeenAt ||
+  const oMissing =
+    !game.playerOLastSeenAt ||
     at.getTime() - game.playerOLastSeenAt.getTime() >= appConfig.disconnectGraceMs;
 
   if (xMissing === oMissing) {
@@ -543,8 +554,8 @@ function buildGameAggregate(game: PersistedGame): GameAggregate {
     clock: createClockState(game),
     state: game.state,
     moves,
-    playerX: game.playerXId ? users.get(game.playerXId) ?? null : null,
-    playerO: game.playerOId ? users.get(game.playerOId) ?? null : null,
+    playerX: game.playerXId ? (users.get(game.playerXId) ?? null) : null,
+    playerO: game.playerOId ? (users.get(game.playerOId) ?? null) : null,
     createdAt: game.createdAt.toISOString(),
     updatedAt: game.updatedAt.toISOString(),
     finishedAt: toIso(game.finishedAt),
@@ -694,20 +705,24 @@ function syncQuickplayState(viewerId: string) {
   }
 
   const viewerRating = resolveQuickplayRating(viewerId);
-  const candidates = listQuickplayCandidates(viewerId, pending.presetId)
-    .sort((left, right) => {
-      const leftGap = Math.abs(resolveQuickplayRating(left.creatorId) - viewerRating);
-      const rightGap = Math.abs(resolveQuickplayRating(right.creatorId) - viewerRating);
-      if (leftGap !== rightGap) {
-        return leftGap - rightGap;
-      }
-      return left.createdAt.getTime() - right.createdAt.getTime();
-    });
+  const candidates = listQuickplayCandidates(viewerId, pending.presetId).sort((left, right) => {
+    const leftGap = Math.abs(resolveQuickplayRating(left.creatorId) - viewerRating);
+    const rightGap = Math.abs(resolveQuickplayRating(right.creatorId) - viewerRating);
+    if (leftGap !== rightGap) {
+      return leftGap - rightGap;
+    }
+    return left.createdAt.getTime() - right.createdAt.getTime();
+  });
 
   if (candidates[0]) {
-    const host = candidates[0].createdAt.getTime() <= pending.createdAt.getTime() ? candidates[0] : pending;
+    const host =
+      candidates[0].createdAt.getTime() <= pending.createdAt.getTime() ? candidates[0] : pending;
     const guest = host.id === pending.id ? candidates[0] : pending;
-    activateQuickplayGame(host, host.creatorId, viewerId === host.creatorId ? guest.creatorId : viewerId);
+    activateQuickplayGame(
+      host,
+      host.creatorId,
+      viewerId === host.creatorId ? guest.creatorId : viewerId,
+    );
     getMemoryStore().games.delete(guest.id);
     return buildQuickplayState({
       game: host,
@@ -744,7 +759,9 @@ function listChallengesForUser(userId: string, direction: "incoming" | "outgoing
   const store = getMemoryStore();
 
   return Array.from(store.challenges.values())
-    .filter((challenge) => direction === "incoming" ? challenge.toUserId === userId : challenge.fromUserId === userId)
+    .filter((challenge) =>
+      direction === "incoming" ? challenge.toUserId === userId : challenge.fromUserId === userId,
+    )
     .filter((challenge) => ["pending", "accepted"].includes(challenge.status))
     .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
 }
@@ -752,12 +769,17 @@ function listChallengesForUser(userId: string, direction: "incoming" | "outgoing
 function findActiveGameForUser(userId: string) {
   const store = getMemoryStore();
 
-  return Array.from(store.games.values())
-    .filter((game) => [game.playerXId, game.playerOId, game.creatorId].includes(userId))
-    .find((game) => game.status === "active") ?? null;
+  return (
+    Array.from(store.games.values())
+      .filter((game) => [game.playerXId, game.playerOId, game.creatorId].includes(userId))
+      .find((game) => game.status === "active") ?? null
+  );
 }
 
-function assertNoLiveCommitments(userId: string, options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string }) {
+function assertNoLiveCommitments(
+  userId: string,
+  options?: { ignoreChallengeId?: string; ignoreQuickplayGameId?: string },
+) {
   if (findActiveGameForUser(userId)) {
     throw new AppError("Finish your current game before starting another one.", 409);
   }
@@ -832,7 +854,9 @@ function createFreshGame(params: {
 
 function getStoreUserByUsername(username: string) {
   const normalized = sanitizeUsername(username);
-  return Array.from(getMemoryStore().users.values()).find((user) => user.username === normalized) ?? null;
+  return (
+    Array.from(getMemoryStore().users.values()).find((user) => user.username === normalized) ?? null
+  );
 }
 
 export async function ensureViewerUser(viewer: AppViewer) {
@@ -890,12 +914,13 @@ export async function getDashboardData(viewer: AppViewer): Promise<HubData> {
   return {
     viewer,
     activeGame: activeGame ? buildGameAggregate(activeGame) : null,
-    quickplay: activeGame?.mode === "quickplay"
-      ? buildQuickplayState({
-          game: activeGame,
-          aggregate: buildGameAggregate(activeGame),
-        })
-      : quickplay,
+    quickplay:
+      activeGame?.mode === "quickplay"
+        ? buildQuickplayState({
+            game: activeGame,
+            aggregate: buildGameAggregate(activeGame),
+          })
+        : quickplay,
     incomingChallenges: listChallengesForUser(viewer.id, "incoming").map(buildChallengeAggregate),
     outgoingChallenges: listChallengesForUser(viewer.id, "outgoing").map(buildChallengeAggregate),
     presets: getPresetOptions(),
@@ -965,7 +990,10 @@ export async function leaveQuickplay(viewer: AppViewer) {
   await ensureViewerUser(viewer);
 
   for (const game of Array.from(getMemoryStore().games.values())) {
-    if (isQuickplayQueueGame(game) && [game.playerXId, game.playerOId, game.creatorId].includes(viewer.id)) {
+    if (
+      isQuickplayQueueGame(game) &&
+      [game.playerXId, game.playerOId, game.creatorId].includes(viewer.id)
+    ) {
       getMemoryStore().games.delete(game.id);
     }
   }
@@ -973,7 +1001,11 @@ export async function leaveQuickplay(viewer: AppViewer) {
   return buildQuickplayState();
 }
 
-export async function createChallenge(viewer: AppViewer, opponentUsername: string, presetId: TimePresetId) {
+export async function createChallenge(
+  viewer: AppViewer,
+  opponentUsername: string,
+  presetId: TimePresetId,
+) {
   if (isPostgresEnabled()) {
     return postgresStore.createChallenge(viewer, opponentUsername, presetId);
   }

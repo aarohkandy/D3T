@@ -108,7 +108,9 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
             <div className="grid gap-4 sm:grid-cols-2">
               {isSignUp ? (
                 <label className="space-y-2 sm:col-span-2">
-                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Email</span>
+                  <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">
+                    Email
+                  </span>
                   <input
                     type="email"
                     autoComplete="email"
@@ -121,7 +123,9 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               ) : null}
 
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Username</span>
+                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">
+                  Username
+                </span>
                 <input
                   autoComplete="username"
                   value={username}
@@ -132,7 +136,9 @@ export function SupabaseAuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
               </label>
 
               <label className="space-y-2 sm:col-span-2">
-                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">Password</span>
+                <span className="text-sm font-medium text-[color:var(--color-ink-soft)]">
+                  Password
+                </span>
                 <input
                   type="password"
                   autoComplete={isSignUp ? "new-password" : "current-password"}

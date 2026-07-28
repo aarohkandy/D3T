@@ -28,7 +28,10 @@ function formatClock(ms: number) {
   return `${minutes}:${String(seconds).padStart(2, "0")}`;
 }
 
-function usePortalClock(game: PortalGame, setGame: React.Dispatch<React.SetStateAction<PortalGame>>) {
+function usePortalClock(
+  game: PortalGame,
+  setGame: React.Dispatch<React.SetStateAction<PortalGame>>,
+) {
   useEffect(() => {
     if (game.result || game.state.status !== "active") {
       return;
@@ -79,7 +82,9 @@ function App() {
   }, [game.result]);
 
   const legalKeys = useMemo(() => {
-    return new Set(generateLegalPortalMoves(game).map((move) => getPathLabel(move.t1, move.t2, move.t3)));
+    return new Set(
+      generateLegalPortalMoves(game).map((move) => getPathLabel(move.t1, move.t2, move.t3)),
+    );
   }, [game]);
 
   const statusText = game.result
@@ -141,14 +146,24 @@ function App() {
                 const isLegal = legalKeys.has(key);
                 const move = { t1: t1 as D3TIndex, t2: t2 as D3TIndex, t3: t3 as D3TIndex };
                 const isLast = game.state.lastMove
-                  ? key === getPathLabel(game.state.lastMove.t1, game.state.lastMove.t2, game.state.lastMove.t3)
+                  ? key ===
+                    getPathLabel(
+                      game.state.lastMove.t1,
+                      game.state.lastMove.t2,
+                      game.state.lastMove.t3,
+                    )
                   : false;
 
                 return (
                   <button
                     key={key}
                     type="button"
-                    className={["cell", owner?.toLowerCase() ?? "", isLegal ? "legal" : "locked", isLast ? "last" : ""].join(" ")}
+                    className={[
+                      "cell",
+                      owner?.toLowerCase() ?? "",
+                      isLegal ? "legal" : "locked",
+                      isLast ? "last" : "",
+                    ].join(" ")}
                     disabled={!isLegal}
                     aria-label={`Cell ${key}${owner ? ` occupied by ${owner}` : ""}`}
                     onClick={() => playMove(move)}
@@ -164,7 +179,8 @@ function App() {
 
       <section className="footer-panel">
         <p>
-          First move goes anywhere. Then the medium and small coordinates send the next player to a forced board.
+          First move goes anywhere. Then the medium and small coordinates send the next player to a
+          forced board.
         </p>
         <button type="button" onClick={reset}>
           Rematch

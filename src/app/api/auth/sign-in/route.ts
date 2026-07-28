@@ -15,7 +15,10 @@ const signInSchema = z.object({
 });
 
 function sanitizeUsername(raw: string) {
-  const normalized = raw.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 18);
+  const normalized = raw
+    .toLowerCase()
+    .replace(/[^a-z0-9_]/g, "")
+    .slice(0, 18);
   if (normalized.length < 2) {
     throw new AppError("Enter your D3T username.", 400);
   }
@@ -40,7 +43,10 @@ export async function POST(request: Request) {
 
     const db = getDb();
     if (!db) {
-      throw new AppError("D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.", 500);
+      throw new AppError(
+        "D3T database is not connected yet. Add DATABASE_URL, then run npm run db:push.",
+        500,
+      );
     }
 
     const payload = signInSchema.parse(await request.json());
@@ -53,7 +59,10 @@ export async function POST(request: Request) {
       });
     } catch (error) {
       if (isDatabaseSetupError(error)) {
-        throw new AppError("The database is not ready yet. Check DATABASE_URL and run the migrations.", 500);
+        throw new AppError(
+          "The database is not ready yet. Check DATABASE_URL and run the migrations.",
+          500,
+        );
       }
 
       throw error;

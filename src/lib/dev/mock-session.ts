@@ -107,13 +107,10 @@ export function getMockViewer(mockUserId?: string | null) {
 
 export function getLocalViewerByUsername(username: string) {
   const normalized = normalizeUsername(username);
-  return normalized ? getRegistry().usersByUsername.get(normalized) ?? null : null;
+  return normalized ? (getRegistry().usersByUsername.get(normalized) ?? null) : null;
 }
 
-export function createLocalViewer(input: {
-  username: string;
-  email?: string;
-}) {
+export function createLocalViewer(input: { username: string; email?: string }) {
   const username = normalizeUsername(input.username);
   if (!username || username.length < 2) {
     throw new Error("Username must be at least 2 characters.");

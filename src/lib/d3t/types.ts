@@ -1,13 +1,13 @@
 export const D3T_INDICES = [1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 export type D3TIndex = number;
-export type D3TMark = 'X' | 'O';
+export type D3TMark = "X" | "O";
 export type D3TPlayer = D3TMark;
 export type D3TBoardOwner = D3TMark | null;
 
-export type D3TGameStatus = 'active' | 'finished';
-export type D3TGameOutcome = 'active' | 'won' | 'draw';
-export type D3TBoardStatus = 'open' | 'won' | 'draw';
+export type D3TGameStatus = "active" | "finished";
+export type D3TGameOutcome = "active" | "won" | "draw";
+export type D3TBoardStatus = "open" | "won" | "draw";
 
 export interface D3TMove extends Record<string, unknown> {
   t1: D3TIndex;
@@ -61,16 +61,14 @@ export interface D3TGameState extends Record<string, unknown> {
 }
 
 export type D3TMoveError =
-  | 'out-of-range'
-  | 'game-finished'
-  | 'wrong-turn'
-  | 'forced-board'
-  | 'board-closed'
-  | 'cell-occupied';
+  | "out-of-range"
+  | "game-finished"
+  | "wrong-turn"
+  | "forced-board"
+  | "board-closed"
+  | "cell-occupied";
 
-export type D3TMoveValidation =
-  | { ok: true }
-  | { ok: false; reason: D3TMoveError };
+export type D3TMoveValidation = { ok: true } | { ok: false; reason: D3TMoveError };
 
 export interface D3TRecordedMove extends D3TMove {
   player: D3TMark;

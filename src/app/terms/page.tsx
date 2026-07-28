@@ -43,7 +43,8 @@ export default function TermsPage() {
             Terms for using the D3T launch site.
           </h1>
           <p className="max-w-3xl text-lg leading-8 text-[color:var(--color-ink-soft)]">
-            These terms cover public access, accounts, gameplay, and fair use of the product. If you do not agree, please do not use D3T.
+            These terms cover public access, accounts, gameplay, and fair use of the product. If you
+            do not agree, please do not use D3T.
           </p>
           <p className="text-sm text-[color:var(--color-ink-muted)]">
             Effective date: April 22, 2026
@@ -67,7 +68,9 @@ export default function TermsPage() {
               Ownership and feedback
             </h2>
             <p className="max-w-4xl text-base leading-7 text-[color:var(--color-ink-soft)]">
-              The D3T brand, design, and software remain the property of their respective owners. Any feedback, suggestions, or bug reports you send may be used to improve the product without obligation to compensate you.
+              The D3T brand, design, and software remain the property of their respective owners.
+              Any feedback, suggestions, or bug reports you send may be used to improve the product
+              without obligation to compensate you.
             </p>
           </section>
 
@@ -76,7 +79,9 @@ export default function TermsPage() {
               Disclaimer
             </h2>
             <p className="max-w-4xl text-base leading-7 text-[color:var(--color-ink-soft)]">
-              D3T is provided on an as-available basis. To the maximum extent allowed by law, we disclaim warranties and limit liability for service interruptions, data issues, and indirect damages arising from use of the site.
+              D3T is provided on an as-available basis. To the maximum extent allowed by law, we
+              disclaim warranties and limit liability for service interruptions, data issues, and
+              indirect damages arising from use of the site.
             </p>
           </section>
         </div>

@@ -9,11 +9,7 @@ export const metadata: Metadata = {
   title: "Play",
 };
 
-export default async function PlayPage({
-  params,
-}: {
-  params: Promise<{ gameId: string }>;
-}) {
+export default async function PlayPage({ params }: { params: Promise<{ gameId: string }> }) {
   const viewer = await requireViewer();
   const { gameId } = await params;
   const game = await getGameAggregate(viewer, gameId);

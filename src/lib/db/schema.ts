@@ -72,20 +72,17 @@ export const movesTable = pgTable(
   (table) => [uniqueIndex("moves_game_move_unique").on(table.gameId, table.moveNumber)],
 );
 
-export const challengesTable = pgTable(
-  "challenges",
-  {
-    id: text("id").primaryKey(),
-    status: text("status").$type<ChallengeStatus>().notNull(),
-    fromUserId: text("from_user_id").notNull(),
-    toUserId: text("to_user_id").notNull(),
-    presetId: text("preset_id").$type<TimePresetId>().notNull(),
-    gameId: text("game_id"),
-    expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-);
+export const challengesTable = pgTable("challenges", {
+  id: text("id").primaryKey(),
+  status: text("status").$type<ChallengeStatus>().notNull(),
+  fromUserId: text("from_user_id").notNull(),
+  toUserId: text("to_user_id").notNull(),
+  presetId: text("preset_id").$type<TimePresetId>().notNull(),
+  gameId: text("game_id"),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export type DbProfile = typeof profilesTable.$inferSelect;
 export type DbGame = typeof gamesTable.$inferSelect;

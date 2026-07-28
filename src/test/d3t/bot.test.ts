@@ -13,8 +13,9 @@ test("bot chooses a legal move from the opening position", () => {
   });
 
   assert.equal(
-    generateLegalMoves(state).some((candidate) =>
-      candidate.t1 === move.t1 && candidate.t2 === move.t2 && candidate.t3 === move.t3
+    generateLegalMoves(state).some(
+      (candidate) =>
+        candidate.t1 === move.t1 && candidate.t2 === move.t2 && candidate.t3 === move.t3,
     ),
     true,
   );

@@ -19,11 +19,13 @@ export default async function SignInPage() {
   return (
     <main className="relative flex min-h-[100svh] items-center justify-center overflow-hidden px-4 py-16">
       <FakeMatchBackground />
-      {isSupabaseAuthEnabled()
-        ? <SupabaseAuthForm mode="sign-in" />
-        : isLocalAuthEnabled()
-          ? <LocalAuthForm mode="sign-in" seedViewers={MOCK_VIEWERS} />
-          : <AuthUnavailableCard />}
+      {isSupabaseAuthEnabled() ? (
+        <SupabaseAuthForm mode="sign-in" />
+      ) : isLocalAuthEnabled() ? (
+        <LocalAuthForm mode="sign-in" seedViewers={MOCK_VIEWERS} />
+      ) : (
+        <AuthUnavailableCard />
+      )}
     </main>
   );
 }
