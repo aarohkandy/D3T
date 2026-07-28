@@ -343,10 +343,6 @@ export function validateMove(state: D3TGameState, move: D3TMove): D3TMoveValidat
     return { ok: false, reason: "out-of-range" };
   }
 
-  if (move.t1 !== undefined && move.t2 !== undefined && move.t3 !== undefined) {
-    // TypeScript already enforces indexes, but keep the guard for external callers.
-  }
-
   const forced = getForcedBoard(state);
   if (forced && (move.t1 !== forced.t1 || move.t2 !== forced.t2)) {
     return { ok: false, reason: "forced-board" };
