@@ -8,7 +8,7 @@ import {
   generateLegalPortalMoves,
   resetPortalState,
   tickPortalTimers,
-} from "../../lib/portal/index.ts";
+} from "../../lib/portal/index";
 
 describe("portal contract", () => {
   test("creates an instant initial playable state", () => {

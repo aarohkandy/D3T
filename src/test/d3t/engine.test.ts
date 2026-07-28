@@ -12,7 +12,7 @@ import {
   scoreTopBoard,
   scoreWinner,
   validateMove,
-} from "../../lib/d3t/index.ts";
+} from "../../lib/d3t/index";
 
 import type { D3TMark } from "../../lib/d3t";
 

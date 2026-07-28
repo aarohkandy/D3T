@@ -1,4 +1,4 @@
-import { D3T_INDICES } from "./types.ts";
+import { D3T_INDICES } from "./types";
 import type {
   D3TApplyMoveResult,
   D3TBoardStatus,
@@ -15,7 +15,7 @@ import type {
   D3TReplay,
   D3TScore,
   D3TTopBoardState,
-} from "./types.ts";
+} from "./types";
 
 export type {
   D3TBoardOwner,
@@ -26,7 +26,7 @@ export type {
   D3TMove,
   D3TPlayer,
   D3TGameOutcome as GameOutcome,
-} from "./types.ts";
+} from "./types";
 
 const BOARD_SIZE = 9;
 

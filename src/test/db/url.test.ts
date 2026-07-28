@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { getDatabaseUrlDiagnostic, normalizeDatabaseUrl } from "../../lib/db/url.ts";
+import { getDatabaseUrlDiagnostic, normalizeDatabaseUrl } from "../../lib/db/url";
 
 describe("normalizeDatabaseUrl", () => {
   it("adds the Supabase project ref to pooler usernames that are missing it", () => {
